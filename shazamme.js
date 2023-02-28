@@ -1,5 +1,5 @@
 $(function() {
-    const version = '0.1.0';
+    const version = '0.1.1';
 
     let _s = {}
     let _ps = {}
@@ -12,6 +12,10 @@ $(function() {
             if (n?.length > 0) {
                 _s[`${n}-${config.widgetId}`] = config;
                 this._sid = this._sid || config.siteId;
+
+                if (!this._site) {
+                    this.site().then();
+                }
 
                 const sender = this;
                 const _sub = {};
@@ -198,8 +202,14 @@ $(function() {
                     dudaSiteID: this._sid,
                 })
             }).then( res => {
-                this._site = res.status && res.response.items.length > 0 && res.response.items[0];
+                let s = res.status && res.response.items.length > 0 && res.response.items[0];
 
+                if (!s.isLive) {
+                    s.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
+                    s.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
+                }
+
+                this._site = s;
                 resolve(this._site);
             });
         });
@@ -216,10 +226,12 @@ $(function() {
                     resolve(r);
                 });
             } else {
+                let sender = this;
+
                 let fail = () => {
                     console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
 
-                    $.ajax(`${ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                    $.ajax(`${sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
                         if (c.useCache) {
                             c._cache = r;
                         }
@@ -248,7 +260,7 @@ $(function() {
 
         this.submit = (d, regional = true) =>
             $.ajax({
-                url: regional ? RegionalUrl : ActionUrl,
+                url: regional ? this._site?.RegionalUrl || RegionalUrl : this._site?.ActionUrl || ActionUrl,
                 type: 'POST',
                 data: JSON.stringify(d),
             });

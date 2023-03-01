@@ -345,9 +345,19 @@ $(function() {
         this.ex = (m, ...p) => {
             console.error(m, ...p);
         }
+
+        this._v = version;
+
+        this.v = (v) => window[`shazamme-${v}`];
     }
 
+    let _i = new _init();
+
     if (!window.shazamme) {
-        window.shazamme = new _init();
+        window.shazamme = _i;
+    }
+
+    if (!window[`shazamme-${_i._v}`]) {
+        window[`shazamme-${_i._v}`] = _i;
     }
 });

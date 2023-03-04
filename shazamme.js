@@ -353,7 +353,7 @@ $(function() {
 
     let _i = new _init();
 
-    if (!window.shazamme) {
+    if (!window.shazamme || window.shazamme._v < _i._v) {
         window.shazamme = _i;
     }
 

@@ -349,15 +349,47 @@ $(function() {
         this._v = version;
 
         this.v = (v) => window[`shazamme-${v}`];
+
+        addEventListener('CookiebotOnConsentReady', function() {
+            if (!Cookiebot.consent.marketing) {
+                localStorage.removeItem('referralSource');
+                localStorage.removeItem('referralMedium');
+                localStorage.removeItem('referralTerm');
+                localStorage.removeItem('referralCampaign');
+                localStorage.removeItem('referralContent');
+            } else {
+                let uri = new URL(window.location.href);
+
+                let referrer = uri.searchParams.get('utm_source');
+                let campaignMedium = uri.searchParams.get('utm_medium');
+                let campaignKeyword = uri.searchParams.get('utm_term');
+                let campaignName = uri.searchParams.get('utm_campaign');
+                let campaignContent = uri.searchParams.get('utm_content');
+
+                if (referrer?.length > 0) localStorage.referralSource = referrer;
+                if (campaignMedium?.length > 0) localStorage.referralMedium = campaignMedium;
+                if (campaignKeyword?.length > 0) localStorage.referralTerm = campaignKeyword;
+                if (campaignName?.length > 0) localStorage.referralCampaign = campaignName;
+                if (campaignContent?.length > 0) localStorage.referralContent = campaignContent;
+            }
+        });
+
+        if (window.Cookiebot && !Cookiebot.consent.marketing) {
+            localStorage.removeItem('referralSource');
+            localStorage.removeItem('referralMedium');
+            localStorage.removeItem('referralTerm');
+            localStorage.removeItem('referralCampaign');
+            localStorage.removeItem('referralContent');
+        }
     }
 
-    let _i = new _init();
+    if (!window[`shazamme-${version}`]) {
+        let _i = new _init();
 
-    if (!window.shazamme || window.shazamme._v < _i._v) {
-        window.shazamme = _i;
-    }
+        if (!window.shazamme || window.shazamme._v < _i._v) {
+            window.shazamme = _i;
+        }
 
-    if (!window[`shazamme-${_i._v}`]) {
         window[`shazamme-${_i._v}`] = _i;
     }
 });

@@ -1,12 +1,42 @@
 $(function() {
     const version = '0.1.1';
 
+    const host = {
+        resources: 'https://d1x4k0bobyopcw.cloudfront.net',
+    }
+
     let _s = {}
     let _ps = {}
+    let _c = {}
+    let _tr = {}
 
     function _init() {
         const ActionUrl = 'https://shazamme.io/Job-Listing/src/php/actions';
         const RegionalUrl = 'https://shazamme.io/Job-Listing/src/php/regional/actions';
+
+        let _ready = false;
+
+        this.ready = () => new Promise( (resolve) => {
+            if (_ready) {
+                resolve();
+                return;
+            }
+
+            $.get(`${host.resources}/shazamme.json`)
+                .then( j => {
+                    _c = j.config;
+                    _tr = j.trace;
+
+                    _ready = true;
+
+                    resolve();
+                },
+                () => {
+                    _ready = true;
+
+                    resolve();
+                });
+        })
 
         this.register = (n, config) => {
             if (n?.length > 0) {
@@ -48,6 +78,15 @@ $(function() {
                         return o;
                     },
 
+                    defaults: () => new Promise( (resolve, reject) => {
+                        sender._pageConfig(config.siteId, config.page).then( c => {
+                            resolve({
+                                ..._c[n],
+                                ...c[n],
+                            });
+                        });
+                    }),
+
                     log: (m, ...p) => {
                         sender.log(`got message from ${n}`, config);
                         sender.log(m, ...p);
@@ -69,6 +108,23 @@ $(function() {
                         return o;
                     },
                 }
+
+                sender._pageConfig(config.siteId, config.page).then( () => {
+                    for (let l in _tr[n]) {
+                        for (let t in _tr[n][l]) {
+                            if (config[t] === _tr[n][l][t]) {
+                                let m = `discovered widget with configuration ${t}: ${config[t]} on page ${config.page}`;
+
+                                switch (l) {
+                                    case 'warn': sender.warn(m); break;
+                                    case 'error': sender.ex(m); break;
+                                    case 'trace': sender.trace(m, n, config); break;
+                                    default: sender.log(m);
+                                }
+                            }
+                        }
+                    }
+                })
 
                 return o;
             } else {
@@ -334,12 +390,101 @@ $(function() {
             }
         }
 
+        this.login = () => new Promise( (resolve, reject) => {
+            const sender = this;
+
+            $.get(`${host.resources}/html/login-dialog.html`).then( h => {
+                let dialog = $(h);
+
+                dialog
+                    .on('click', '[data-rel=button-submit]', function() {
+                        let uid = dialog.find('[data-rel=field-uid]').val();
+                        let secret = dialog.find('[data-rel=field-secret]').val();
+
+                        if (uid.length === 0 || secret.length === 0) {
+                            alert('Please provide a user name and a password.');
+                            return;
+                        }
+
+                        const fb = sender.firebase();
+
+                        fb.auth(uid, secret).then( u =>
+                            sender.site().then( s =>
+                                sender.submit({
+                                    action: 'Login Candidate',
+                                    eMail: uid,
+                                    siteID: s.siteID,
+                                }).then( r => {
+                                    let s = r?.response?.items[0];
+
+                                    if (!s) {
+                                        dialog.remove();
+                                        reject();
+                                        return;
+                                    }
+
+                                    // if (!candidateInfo.isValidated) {
+                                    //     let link = window.location.href.includes(dudaAlias) ? `/site/${dudaAlias}/${forgotPassword}?preview=true&insitepreview=true&dm_device=desktop&mode=verifyEmail`:`/${forgotPassword}?mode=verifyEmail`;
+                                    //     window.location = link;
+                                    //     return;
+                                    // }
+
+                                    s.uid = u.uid;
+                                    localStorage.setItem("vinylResponse", JSON.stringify({response: s}));
+
+                                    dialog.remove();
+
+                                    resolve(s);
+                                })
+                            )
+                        )
+                    })
+                    .on('click', '[data-rel=button-dismiss]', function() {
+                        dialog.remove();
+                        reject();
+                    })
+                    .on('click', '[data-rel=button-provider]', function() {
+                        sender.oauth(window[$(this).attr('data-provider')]).then( u => {
+                            if (!u.isNew) {
+                                sender.site().then( s =>
+                                    sender.submit({
+                                        action: 'Login Candidate',
+                                        eMail: uid,
+                                        siteID: s.siteID,
+                                    }).then( r => {
+                                        let s = r?.response?.items[0];
+
+                                        if (!s) {
+                                            dialog.remove();
+                                            reject();
+                                            return;
+                                        }
+
+                                        s.uid = u.uid;
+                                        localStorage.setItem("vinylResponse", JSON.stringify({response: s}));
+
+                                        dialog.remove();
+
+                                        resolve(s);
+                                    })
+                                )
+                            }
+                        })
+                    })
+                    .appendTo($('body'));
+            })
+        })
+
         this.log = (m, ...p) => {
             console.log(m, ...p);
         }
 
         this.trace = (m, ...p) => {
             console.trace(m, ...p);
+        }
+
+        this.warn = (m, ...p) => {
+            console.warn(m, ...p);
         }
 
         this.ex = (m, ...p) => {
@@ -349,6 +494,45 @@ $(function() {
         this._v = version;
 
         this.v = (v) => window[`shazamme-${v}`];
+
+        this._pageConfig = (sid, p) => new Promise( (resolve, reject) => {
+            this._config = this._config || {}
+
+            if (this._config[`${sid}_${p}`]) {
+                resolve(this._config[`${sid}_${p}`]);
+                return;
+            }
+
+            Promise
+                .allSettled([
+                    $.get(`${host.resources}/${sid}/shazamme.json`),
+                    $.get(`${host.resources}/${sid}/${p}/shazamme.json`),
+                ])
+                .then( r => {
+                    let c = {};
+
+                    r.forEach( j => {
+                        for (let w in j.value?.config) {
+                            c[w] = {
+                                ...c[w],
+                                ...j.value?.config[w],
+                            }
+                        }
+
+                        for (let w in j.value?.trace) {
+                            _tr[w] = _tr[w] || {}
+
+                            for (let l in j.value.trace[w]) {
+                                _tr[w][l] = Array.concat(j.value.trace[w][l], _tr[w][l] || [])
+                            }
+                        }
+                    });
+
+                    this._config[`${sid}_${p}`] = c;
+                    resolve(c);
+                });
+
+        });
 
         addEventListener('CookiebotOnConsentReady', function() {
             if (!Cookiebot.consent.marketing) {
@@ -391,5 +575,7 @@ $(function() {
         }
 
         window[`shazamme-${_i._v}`] = _i;
+
+        _i.ready().then();
     }
 });

@@ -9,6 +9,7 @@ $(function() {
     let _ps = {}
     let _c = {}
     let _tr = {}
+    let _b = {}
 
     function _init() {
         const ActionUrl = 'https://shazamme.io/Job-Listing/src/php/actions';
@@ -86,6 +87,10 @@ $(function() {
                             });
                         });
                     }),
+
+                    bag: (k, v) => {
+                        return sender.bag(`${n}:${config.widgetId}:${k}`, v);
+                    },
 
                     log: (m, ...p) => {
                         sender.log(`got message from ${n}`, config);
@@ -390,90 +395,24 @@ $(function() {
             }
         }
 
-        this.login = () => new Promise( (resolve, reject) => {
-            const sender = this;
+        this.bag = (k, v) => {
+            if (k === undefined) {
+                return _b;
+            }
 
-            $.get(`${host.resources}/html/login-dialog.html`).then( h => {
-                let dialog = $(h);
+            if (v === undefined) {
+                return _b[k];
+            }
 
-                dialog
-                    .on('click', '[data-rel=button-submit]', function() {
-                        let uid = dialog.find('[data-rel=field-uid]').val();
-                        let secret = dialog.find('[data-rel=field-secret]').val();
+            if (v === null) {
+                delete _b[k];
+                return undefined;
+            }
 
-                        if (uid.length === 0 || secret.length === 0) {
-                            alert('Please provide a user name and a password.');
-                            return;
-                        }
+            _b[k] = v;
 
-                        const fb = sender.firebase();
-
-                        fb.auth(uid, secret).then( u =>
-                            sender.site().then( s =>
-                                sender.submit({
-                                    action: 'Login Candidate',
-                                    eMail: uid,
-                                    siteID: s.siteID,
-                                }).then( r => {
-                                    let s = r?.response?.items[0];
-
-                                    if (!s) {
-                                        dialog.remove();
-                                        reject();
-                                        return;
-                                    }
-
-                                    // if (!candidateInfo.isValidated) {
-                                    //     let link = window.location.href.includes(dudaAlias) ? `/site/${dudaAlias}/${forgotPassword}?preview=true&insitepreview=true&dm_device=desktop&mode=verifyEmail`:`/${forgotPassword}?mode=verifyEmail`;
-                                    //     window.location = link;
-                                    //     return;
-                                    // }
-
-                                    s.uid = u.uid;
-                                    localStorage.setItem("vinylResponse", JSON.stringify({response: s}));
-
-                                    dialog.remove();
-
-                                    resolve(s);
-                                })
-                            )
-                        )
-                    })
-                    .on('click', '[data-rel=button-dismiss]', function() {
-                        dialog.remove();
-                        reject();
-                    })
-                    .on('click', '[data-rel=button-provider]', function() {
-                        sender.oauth(window[$(this).attr('data-provider')]).then( u => {
-                            if (!u.isNew) {
-                                sender.site().then( s =>
-                                    sender.submit({
-                                        action: 'Login Candidate',
-                                        eMail: uid,
-                                        siteID: s.siteID,
-                                    }).then( r => {
-                                        let s = r?.response?.items[0];
-
-                                        if (!s) {
-                                            dialog.remove();
-                                            reject();
-                                            return;
-                                        }
-
-                                        s.uid = u.uid;
-                                        localStorage.setItem("vinylResponse", JSON.stringify({response: s}));
-
-                                        dialog.remove();
-
-                                        resolve(s);
-                                    })
-                                )
-                            }
-                        })
-                    })
-                    .appendTo($('body'));
-            })
-        })
+            return v;
+        }
 
         this.log = (m, ...p) => {
             console.log(m, ...p);

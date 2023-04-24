@@ -15,6 +15,8 @@ $(function() {
         const ActionUrl = 'https://shazamme.io/Job-Listing/src/php/actions';
         const RegionalUrl = 'https://shazamme.io/Job-Listing/src/php/regional/actions';
 
+        const sender = this;
+
         let _ready = false;
 
         this.ready = () => new Promise( (resolve) => {
@@ -39,17 +41,29 @@ $(function() {
                 });
         })
 
-        this.register = (n, config) => {
+        this.register = (n, config, tracing = false) => {
             if (n?.length > 0) {
-                _s[`${n}-${config.widgetId}`] = config;
-                this._sid = this._sid || config.siteId;
+                let c = {
+                    _name: n,
+                    ...config,
+                }
+
+                _s[`${n}-${config.widgetId}`] = c;
+                this._sid = this._sid || c.siteId;
 
                 if (!this._site) {
                     this.site().then();
                 }
 
-                const sender = this;
                 const _sub = {};
+
+                let _tracer = undefined;
+
+                if (tracing) {
+                    sender.tracer().then( t => _tracer = t );
+                }
+
+                sender._cTrace(c);
 
                 const o = {
                     sub: (msg, on) => {
@@ -58,13 +72,13 @@ $(function() {
                         let h = sender.sub(msg, on);
                         _sub[msg] = h;
 
-                        console.log(`${n} listening for message '${msg}' (${h})`, config);
+                        console.log(`${n} listening for message '${msg}' (${h})`, c);
 
                         return o;
                     },
 
                     pub: (msg, m) => {
-                        console.log(`${n} publishing message '${msg}'`, config);
+                        console.log(`${n} publishing message '${msg}'`, c);
                         sender.pub(msg, m);
 
                         return o;
@@ -72,7 +86,7 @@ $(function() {
 
                     unsub: (msg) => {
                         if (_sub[msg]) {
-                            console.log(`${n} stop listening for message '${msg}'`, config);
+                            console.log(`${n} stop listening for message '${msg}'`, c);
                             delete _ps[msg][_sub[n]];
                         }
 
@@ -93,22 +107,65 @@ $(function() {
                     },
 
                     log: (m, ...p) => {
-                        sender.log(`got message from ${n}`, config);
+                        sender.log(`got message from ${n}`, c);
                         sender.log(m, ...p);
+
+                        _tracer?.trace({
+                            from: n,
+                            widget: config,
+                            message: m,
+                            params: p,
+                            ua: window.navigator?.userAgent,
+                            level: 'log',
+                        });
+
+                        return o;
+                    },
+
+                    warn: (m, ...p) => {
+                        sender.warn(`got message from ${n}`, config);
+                        sender.warn(m, ...p);
+
+                        _tracer?.trace({
+                            from: n,
+                            widget: config,
+                            message: m,
+                            params: p,
+                            ua: window.navigator?.userAgent,
+                            level: 'warn',
+                        });
 
                         return o;
                     },
 
                     trace: (m, ...p) => {
-                        sender.log(`got message from ${n}`, config);
+                        sender.log(`got message from ${n}`, c);
                         sender.trace(m, ...p);
+
+                        _tracer?.trace({
+                            from: n,
+                            widget: config,
+                            message: m,
+                            params: p,
+                            ua: window.navigator?.userAgent,
+                            level: 'trace',
+                        });
 
                         return o;
                     },
 
                     ex: (m, ...p) => {
-                        sender.log(`got message from ${n}`, config);
+                        sender.log(`got message from ${n}`, c);
                         sender.ex(m, ...p);
+
+                        _tracer?.trace({
+                            from: n,
+                            widget: config,
+                            message: m,
+                            params: p,
+                            ua: window.navigator?.userAgent,
+                            level: 'ex',
+                        });
 
                         return o;
                     },
@@ -133,7 +190,7 @@ $(function() {
 
                 return o;
             } else {
-                console.warn('No name provided for object', config);
+                console.warn('No name provided for object', c);
             }
         }
 
@@ -287,8 +344,6 @@ $(function() {
                     resolve(r);
                 });
             } else {
-                let sender = this;
-
                 let fail = () => {
                     console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
 
@@ -430,9 +485,72 @@ $(function() {
             console.error(m, ...p);
         }
 
+        this.tracer = () => new Promise( (resolve, reject) => {
+            const o = {
+                trace: (m) => sender._tracer?.push(m),
+            }
+
+            if (sender._tracer) {
+                resolve(o);
+            } else {
+                $.getScript("https://cloudfront.loggly.com/js/loggly.tracker-2.2.4.min.js",
+                    function() {
+                        sender._tracer = _LTracker;
+
+                        sender._tracer.push({
+                            'logglyKey': '70c3ea33-de10-495b-bb9d-574e90489d69',
+                            'sendConsoleErrors': false,
+                            'tag': 'loggly-jslogger',
+                        });
+
+                        resolve(o);
+                    },
+
+                    function() {
+                        reject();
+                    }
+                );
+            }
+        });
+
         this._v = version;
 
         this.v = (v) => window[`shazamme-${v}`];
+
+        this._cTrace = (c) => {
+            if (!_tr) return;
+
+            this.tracer().then( t => {
+                let match = w => {
+                    let found = true;
+
+                    for (let i in w) {
+                        found = found && c.config[i] === w[i];
+                    }
+
+                    if (found) {
+                        return c.config;
+                    }
+                }
+
+                for (let l in _tr[c._name]) {
+                    _tr[c._name][l].forEach( w => {
+                        let p = match(w);
+
+                        if (p) {
+                            t?.trace({
+                                from: c._name,
+                                widget: c,
+                                message: `Found widget ${c._name} on page ${c.page}`,
+                                params: p,
+                                level: l,
+                                messageType: 'widget-tracing',
+                            });
+                        }
+                    });
+                }
+            });
+        }
 
         this._pageConfig = (sid, p) => new Promise( (resolve, reject) => {
             this._config = this._config || {}

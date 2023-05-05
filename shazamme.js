@@ -69,7 +69,12 @@ $(function() {
                     sub: (msg, on) => {
                         if (_sub[msg]) return;
 
-                        let h = sender.sub(msg, on);
+                        let h = sender.sub(msg, (m, h) => {
+                            if (_sub[msg] === h) {
+                                on(m);
+                            }
+                        });
+
                         _sub[msg] = h;
 
                         console.log(`${n} listening for message '${msg}' (${h})`, c);
@@ -295,7 +300,7 @@ $(function() {
 
             if (e) {
                 for (let i in e) {
-                    e[i](m);
+                    e[i](m, i);
                 }
             }
         }

@@ -325,7 +325,7 @@ $(function() {
                     dudaSiteID: this._sid,
                 })
             }).then( res => {
-                let s = res.status && res.response.items.length > 0 && res.response.items[0];
+                let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
 
                 if (!s.isLive) {
                     s.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';

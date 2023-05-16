@@ -332,8 +332,8 @@ $(function() {
                     s.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
                 }
 
-                this._site = s;
-                resolve(this._site);
+                sender._site = s;
+                resolve(sender._site);
             });
         });
 
@@ -380,11 +380,13 @@ $(function() {
         });
 
         this.submit = (d, regional = true) =>
-            $.ajax({
-                url: regional ? this._site?.RegionalUrl || RegionalUrl : this._site?.ActionUrl || ActionUrl,
-                type: 'POST',
-                data: JSON.stringify(d),
-            });
+            this.site().then( s =>
+                $.ajax({
+                    url: (regional && (s?.RegionalUrl || RegionalUrl)) || s?.ActionUrl || ActionUrl,
+                    type: 'POST',
+                    data: JSON.stringify(d),
+                })
+            );
 
         this.firebase = () => {
             const create = (uname, secret) => new Promise( (resolve, reject) => {

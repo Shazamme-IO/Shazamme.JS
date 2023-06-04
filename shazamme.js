@@ -1,4 +1,4 @@
-$(function() {
+(() => {
     const version = '0.1.1';
 
     const host = {
@@ -66,6 +66,13 @@ $(function() {
                 sender._cTrace(c);
 
                 const o = {
+                    supports: (s) => {
+                        c.supports = {
+                            ...c.supports,
+                            ...s,
+                        };
+                    },
+
                     sub: (msg, on) => {
                         if (_sub[msg]) return;
 
@@ -110,6 +117,25 @@ $(function() {
                     bag: (k, v) => {
                         return sender.bag(`${n}:${config.widgetId}:${k}`, v);
                     },
+
+                    config: (c) =>
+                        c === undefined ?
+                            sender.submit({
+                                action: "Get Widget Configuration",
+                                siteID: config.siteId,
+                                accountID: config.accountId,
+                                elementID: config.elementId,
+                            }, false).then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
+                            :
+                            sender.submit({
+                                action: "Set Widget Configuration",
+                                siteID: config.siteId,
+                                accountID: config.accountId,
+                                elementID: config.elementId,
+                                pageName: config.page,
+                                widgetName: n,
+                                configuration: JSON.stringify(c),
+                            }, false),
 
                     log: (m, ...p) => {
                         sender.log(`got message from ${n}`, c);
@@ -203,10 +229,12 @@ $(function() {
             if (n?.length > 0) {
                 let i = _s[n];
 
-                if (i) {
-                    console.log(`${n}:`, i);
-                } else {
-                    console.warn(`No object available: ${n}`);
+                for (let i in _s) {
+                    let w = _s[i];
+
+                    if (w._name === n) {
+                        console.log(`${i}:`, w);
+                    }
                 }
             } else {
                 for (let i in _s) {
@@ -457,6 +485,34 @@ $(function() {
             }
         }
 
+        this.currentUser = () => new Promise( (resolve, reject) => {
+            if (this._session) {
+                resolve({...this._session});
+                return;
+            }
+
+            if (localStorage._sHandle?.length > 0) {
+                this.site()
+                    .then( s =>
+                        this.submit({
+                            action: 'Get Candidate By ID',
+                            candidateID: localStorage._sHandle,
+                            siteID: s.siteID,
+                        })
+                    ).then( r => {
+                        let c = r?.response?.items[0];
+
+                        if (c) {
+                            sender._session = c;
+                            resolve(c);
+                        }
+                    });
+
+            } else {
+                resolve();
+            }
+        });
+
         this.bag = (k, v) => {
             if (k === undefined) {
                 return _b;
@@ -629,6 +685,34 @@ $(function() {
             localStorage.removeItem('referralCampaign');
             localStorage.removeItem('referralContent');
         }
+
+        if (window.firebase) {
+            firebase.auth().onAuthStateChanged( u => {
+                if (u) {
+                    sender.site()
+                        .then( s =>
+                            sender.submit({
+                                action: "Login Candidate",
+                                siteID: s.siteID,
+                                eMail: u.email,
+                            })
+                        ).then( r => {
+                            let c = r?.response?.items[0];
+
+                            if (c) {
+                                localStorage._sHandle = c.candidateID;
+                                sender._session = c;
+
+                                sender.pub('site-auth', c);
+                            }
+                        })
+                } else {
+                    localStorage.removeItem('_sHandle');
+                    delete sender._session;
+                    sender.pub('site-auth');
+                }
+            });
+        }
     }
 
     if (!window[`shazamme-${version}`]) {
@@ -639,7 +723,5 @@ $(function() {
         }
 
         window[`shazamme-${_i._v}`] = _i;
-
-        _i.ready().then();
     }
-});
+})();

@@ -1,5 +1,5 @@
 (() => {
-    const version = '0.1.1';
+    const version = '1.0';
 
     const host = {
         resources: 'https://d1x4k0bobyopcw.cloudfront.net',

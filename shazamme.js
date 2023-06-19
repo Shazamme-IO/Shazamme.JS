@@ -5,6 +5,10 @@
         resources: 'https://d1x4k0bobyopcw.cloudfront.net',
     }
 
+    const message = {
+        auth: 'site-auth',
+    }
+
     let _s = {}
     let _ps = {}
     let _c = {}
@@ -313,14 +317,16 @@
             });
 
         this.sub = (n, on) => {
-            let e = _ps[n] || {}
-            let h = this.uuid();
+            if (typeof(on) === 'function') {
+                let e = _ps[n] || {}
+                let h = this.uuid();
 
-            e[h] = on;
+                e[h] = on;
 
-            _ps[n] = e;
+                _ps[n] = e;
 
-            return h;
+                return h;
+            }
         }
 
         this.pub = (n, m) => {
@@ -436,10 +442,7 @@
                 firebase.auth().signInWithEmailAndPassword(uname, secret).then( res => {
                     firebase.auth().onAuthStateChanged(user => {
                         if (user) {
-                            resolve({
-                                uid: res.user.uid,
-                                email: user.email,
-                            })
+                            resolve(user);
                         } else {
                             reject({
                                 msg: 'The user does not exist or the credentials used were incorrect.'
@@ -461,7 +464,7 @@
                     let name = (res.additionalUserInfo.profile.name || '').split(' ');
 
                     resolve({
-                        token: JSON.stringify(res.credential),
+                        token: res.credential,
                         uid: res.user.uid,
                         email: res.additionalUserInfo.profile.email,
                         lastName: name.length > 1 ? name.pop() : '',
@@ -485,8 +488,8 @@
             }
         }
 
-        this.currentUser = () => new Promise( (resolve, reject) => {
-            if (this._session) {
+        this.currentUser = (refresh = false) => new Promise( (resolve, reject) => {
+            if (this._session && !refresh) {
                 resolve({...this._session});
                 return;
             }
@@ -503,8 +506,14 @@
                         let c = r?.response?.items[0];
 
                         if (c) {
-                            sender._session = c;
-                            resolve(c);
+                            let s = {
+                                session: c,
+                                isOAuth: false,
+                                isNew: false,
+                            }
+
+                            sender._session = s;
+                            resolve({...s});
                         }
                     });
 
@@ -650,8 +659,16 @@
 
                     this._config[`${sid}_${p}`] = c;
                     resolve(c);
-                });
+                }, err => {
+                    if (err.status >= 400 && err.status < 500) {
+                        this._config[`${sid}_${p}`] = {};
+                        resolve({});
 
+                        return;
+                    }
+
+                    sender.warn(`Error encountered looking for page configuration (${sid} : ${p}`, err);
+                });
         });
 
         addEventListener('CookiebotOnConsentReady', function() {
@@ -701,17 +718,69 @@
 
                             if (c) {
                                 localStorage._sHandle = c.candidateID;
-                                sender._session = c;
+                                let s = {
+                                    session: c,
+                                    isOAuth: u.providerData[0].providerId !== "password",
+                                    isNew: false,
+                                }
 
-                                sender.pub('site-auth', c);
+                                sender._session = s;
+
+                                sender.pub(message.auth, {...s});
+                            } else {
+                                let name = (u.displayName || '').split(' ');
+
+                                sender.pub(message.auth, {
+                                    isOAuth: true,
+                                    isNew: true,
+                                    session: {
+                                        firebaseUserID: u.uid,
+                                        eMail: u.email,
+                                        surname: name.length > 1 ? name.pop() : '',
+                                        firstName: name.length > 0 ? name.join(' ') : '',
+                                    }
+                                });
                             }
                         })
                 } else {
                     localStorage.removeItem('_sHandle');
                     delete sender._session;
-                    sender.pub('site-auth');
+                    sender.pub(message.auth);
                 }
             });
+        }
+
+        let uri = new URL(window.location.href);
+        let linkedInToken = uri.searchParams.get('code');
+        if (linkedInToken) {
+
+            sender.site()
+                .then( s => shazamme.submit({
+                    action: 'Get Linkedin',
+                    siteID: s.siteID,
+                    linkedIncode: linkedInToken,
+                    redirectUri: encodeURIComponent(`${uri.protocol}//${s.siteDomain}${uri.pathname}`),
+                }))
+                .then( r => r.status && sender.submit({
+                    action: "Login Candidate",
+                    siteID: r.siteID,
+                    eMail: r.email,
+                })).then( r => {
+                    let c = r?.response?.items[0];
+
+                    if (c) {
+                        let s = {
+                            session: c,
+                            isOAuth: u.providerData[0].providerId !== "password",
+                            isNew: false,
+                        }
+
+                        localStorage._sHandle = c.candidateID;
+                        sender._session = s;
+
+                        sender.pub(message.auth, {...s});
+                    }
+                });
         }
     }
 

@@ -103,7 +103,9 @@
                     unsub: (msg) => {
                         if (_sub[msg]) {
                             console.log(`${n} stop listening for message '${msg}'`, c);
+
                             delete _ps[msg][_sub[n]];
+                            delete _sub[msg];
                         }
 
                         return o;
@@ -129,6 +131,7 @@
                                 siteID: config.siteId,
                                 accountID: config.accountId,
                                 elementID: config.elementId,
+                                pageName: config.page,
                             }, false).then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
                             :
                             sender.submit({
@@ -333,8 +336,8 @@
             let e = _ps[n];
 
             if (e) {
-                for (let i in e) {
-                    e[i](m, i);
+                for (let h in e) {
+                    e[h](m, h);
                 }
             }
         }
@@ -719,12 +722,22 @@
                             if (c) {
                                 localStorage._sHandle = c.candidateID;
                                 let s = {
-                                    session: c,
+                                    session: {...c},
                                     isOAuth: u.providerData[0].providerId !== "password",
                                     isNew: false,
                                 }
 
                                 sender._session = s;
+
+                                c.photo
+                                = c.photoFileName
+                                = c.cVFileContent
+                                = c.cVFileName
+                                = c.coverLetterContent
+                                = c.coverLetterFileName
+                                = null;
+
+                                localStorage.vinylResponse = JSON.stringify({response: c});
 
                                 sender.pub(message.auth, {...s});
                             } else {
@@ -753,7 +766,6 @@
         let uri = new URL(window.location.href);
         let linkedInToken = uri.searchParams.get('code');
         if (linkedInToken) {
-
             sender.site()
                 .then( s => shazamme.submit({
                     action: 'Get Linkedin',
@@ -770,7 +782,7 @@
 
                     if (c) {
                         let s = {
-                            session: c,
+                            session: {...c},
                             isOAuth: u.providerData[0].providerId !== "password",
                             isNew: false,
                         }
@@ -778,10 +790,21 @@
                         localStorage._sHandle = c.candidateID;
                         sender._session = s;
 
+                        c.photo
+                        = c.photoFileName
+                        = c.cVFileContent
+                        = c.cVFileName
+                        = c.coverLetterContent
+                        = c.coverLetterFileName
+                        = null;
+
+                        localStorage.vinylResponse = JSON.stringify({response: c});
+
                         sender.pub(message.auth, {...s});
                     }
                 });
         }
+
     }
 
     if (!window[`shazamme-${version}`]) {

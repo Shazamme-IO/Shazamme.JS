@@ -23,26 +23,30 @@
 
         let _ready = false;
 
-        this.ready = () => new Promise( (resolve) => {
+        this.ready = (sid) => new Promise( (resolve) => {
             if (_ready) {
                 resolve();
                 return;
             }
 
-            $.get(`${host.resources}/shazamme.json`)
-                .then( j => {
-                    _c = j.config;
-                    _tr = j.trace;
+            this._sid = this._sid || sid;
 
-                    _ready = true;
+            Promise.all(
+                $.get(`${host.resources}/shazamme.json`)
+                    .then( j => {
+                        _c = j.config;
+                        _tr = j.trace;
 
-                    resolve();
-                },
-                () => {
-                    _ready = true;
+                        return Promise.resolve();
+                    },
+                    () => {
+                        return Promise.resolve();
+                    }),
 
-                    resolve();
-                });
+                sender.site(),
+            )
+            .then( () => resolve() )
+            .catch( () => resolve() );
         })
 
         this.register = (n, config, tracing = false) => {
@@ -517,6 +521,8 @@
 
                             sender._session = s;
                             resolve({...s});
+                        } else {
+                            resolve();
                         }
                     });
 
@@ -756,8 +762,23 @@
                             }
                         })
                 } else {
+                    [
+                        'authProvider',
+                        'createAlert',
+                        'currentJobViewed',
+                        'jobID',
+                        'linkedIncode',
+                        'previousApplicationPage',
+                        'resumeBinary',
+                        'resumeFileName',
+                        'resumeLink',
+                        'seekAuthorizationCode',
+                        'vinylResponse',
+                    ].forEach( k => localStorage.removeItem(k) );
+
                     localStorage.removeItem('_sHandle');
                     delete sender._session;
+
                     sender.pub(message.auth);
                 }
             });
@@ -803,6 +824,18 @@
                         sender.pub(message.auth, {...s});
                     }
                 });
+        }
+
+        if (window.clarity) {
+            let s = shApi.checkLocalStorage('_clarity');
+
+            if (!s) {
+                s = sender.uuid();
+
+                shApi.createLocalStorage('_clarity', s);
+            }
+
+            clarity('identify', s);
         }
 
     }

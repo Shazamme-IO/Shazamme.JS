@@ -21,17 +21,17 @@
 
         const sender = this;
 
-        let _ready = false;
+        let _rp = undefined;
+        let _ready = undefined;
 
-        this.ready = (sid) => new Promise( (resolve) => {
-            if (_ready) {
-                resolve();
-                return;
-            }
+        this.ready = (sid, p) => {
+            if (_rp) return _ready;
 
-            this._sid = this._sid || sid;
+            _ready = new Promise( r => _rp = r );
 
-            Promise.all(
+            sender._sid = sender._sid || sid;
+
+            Promise.all([
                 $.get(`${host.resources}/shazamme.json`)
                     .then( j => {
                         _c = j.config;
@@ -44,10 +44,177 @@
                     }),
 
                 sender.site(),
-            )
-            .then( () => resolve() )
-            .catch( () => resolve() );
-        })
+
+                sender._pageConfig(sid, p),
+            ])
+            .then( () => {
+                _rp();
+             })
+            .catch( (ex) => {
+                console.error(ex);
+                _rp();
+            });
+
+            addEventListener('CookiebotOnConsentReady', function() {
+                if (!Cookiebot.consent.marketing) {
+                    localStorage.removeItem('referralSource');
+                    localStorage.removeItem('referralMedium');
+                    localStorage.removeItem('referralTerm');
+                    localStorage.removeItem('referralCampaign');
+                    localStorage.removeItem('referralContent');
+                } else {
+                    let uri = new URL(window.location.href);
+
+                    let referrer = uri.searchParams.get('utm_source');
+                    let campaignMedium = uri.searchParams.get('utm_medium');
+                    let campaignKeyword = uri.searchParams.get('utm_term');
+                    let campaignName = uri.searchParams.get('utm_campaign');
+                    let campaignContent = uri.searchParams.get('utm_content');
+
+                    if (referrer?.length > 0) localStorage.referralSource = referrer;
+                    if (campaignMedium?.length > 0) localStorage.referralMedium = campaignMedium;
+                    if (campaignKeyword?.length > 0) localStorage.referralTerm = campaignKeyword;
+                    if (campaignName?.length > 0) localStorage.referralCampaign = campaignName;
+                    if (campaignContent?.length > 0) localStorage.referralContent = campaignContent;
+                }
+            });
+
+            if (window.Cookiebot && !Cookiebot.consent.marketing) {
+                localStorage.removeItem('referralSource');
+                localStorage.removeItem('referralMedium');
+                localStorage.removeItem('referralTerm');
+                localStorage.removeItem('referralCampaign');
+                localStorage.removeItem('referralContent');
+            }
+
+            if (window.firebase) {
+                firebase.auth().onAuthStateChanged( u => {
+                    if (u) {
+                        sender.site()
+                            .then( s =>
+                                sender.submit({
+                                    action: "Login Candidate",
+                                    siteID: s.siteID,
+                                    eMail: u.email,
+                                })
+                            ).then( r => {
+                                let c = r?.response?.items[0];
+
+                                if (c) {
+                                    localStorage._sHandle = c.candidateID;
+                                    let s = {
+                                        session: {...c},
+                                        isOAuth: u.providerData[0].providerId !== "password",
+                                        isNew: false,
+                                    }
+
+                                    sender._session = s;
+
+                                    c.photo
+                                    = c.photoFileName
+                                    = c.cVFileContent
+                                    = c.cVFileName
+                                    = c.coverLetterContent
+                                    = c.coverLetterFileName
+                                    = null;
+
+                                    localStorage.vinylResponse = JSON.stringify({response: c});
+
+                                    sender.pub(message.auth, {...s});
+                                } else {
+                                    let name = (u.displayName || '').split(' ');
+
+                                    sender.pub(message.auth, {
+                                        isOAuth: true,
+                                        isNew: true,
+                                        session: {
+                                            firebaseUserID: u.uid,
+                                            eMail: u.email,
+                                            surname: name.length > 1 ? name.pop() : '',
+                                            firstName: name.length > 0 ? name.join(' ') : '',
+                                        }
+                                    });
+                                }
+                            })
+                    } else {
+                        [
+                            'authProvider',
+                            'createAlert',
+                            'currentJobViewed',
+                            'jobID',
+                            'linkedIncode',
+                            'previousApplicationPage',
+                            'resumeBinary',
+                            'resumeFileName',
+                            'resumeLink',
+                            'seekAuthorizationCode',
+                            'vinylResponse',
+                        ].forEach( k => localStorage.removeItem(k) );
+
+                        localStorage.removeItem('_sHandle');
+                        delete sender._session;
+
+                        sender.pub(message.auth);
+                    }
+                });
+            }
+
+            let uri = new URL(window.location.href);
+            let linkedInToken = uri.searchParams.get('code');
+            if (linkedInToken) {
+                sender.site()
+                    .then( s => shazamme.submit({
+                        action: 'Get Linkedin',
+                        siteID: s.siteID,
+                        linkedIncode: linkedInToken,
+                        redirectUri: encodeURIComponent(`${uri.protocol}//${s.siteDomain}${uri.pathname}`),
+                    }))
+                    .then( r => r.status && sender.submit({
+                        action: "Login Candidate",
+                        siteID: r.siteID,
+                        eMail: r.email,
+                    })).then( r => {
+                        let c = r?.response?.items[0];
+
+                        if (c) {
+                            let s = {
+                                session: {...c},
+                                isOAuth: u.providerData[0].providerId !== "password",
+                                isNew: false,
+                            }
+
+                            localStorage._sHandle = c.candidateID;
+                            sender._session = s;
+
+                            c.photo
+                            = c.photoFileName
+                            = c.cVFileContent
+                            = c.cVFileName
+                            = c.coverLetterContent
+                            = c.coverLetterFileName
+                            = null;
+
+                            localStorage.vinylResponse = JSON.stringify({response: c});
+
+                            sender.pub(message.auth, {...s});
+                        }
+                    });
+            }
+
+            if (window.clarity) {
+                let s = localStorage._clarity;
+
+                if (!s) {
+                    s = sender.uuid();
+
+                    localStorage._clarity = s;
+                }
+
+                clarity('identify', s);
+            }
+
+            return _ready;
+        };
 
         this.register = (n, config, tracing = false) => {
             if (n?.length > 0) {
@@ -634,10 +801,15 @@
         }
 
         this._pageConfig = (sid, p) => new Promise( (resolve, reject) => {
-            this._config = this._config || {}
+            if (!sid || !p) {
+                resolve();
+                return;
+            }
 
-            if (this._config[`${sid}_${p}`]) {
-                resolve(this._config[`${sid}_${p}`]);
+            sender._config = sender._config || {}
+
+            if (sender._config[`${sid}_${p}`]) {
+                resolve(sender._config[`${sid}_${p}`]);
                 return;
             }
 
@@ -666,11 +838,11 @@
                         }
                     });
 
-                    this._config[`${sid}_${p}`] = c;
+                    sender._config[`${sid}_${p}`] = c;
                     resolve(c);
                 }, err => {
                     if (err.status >= 400 && err.status < 500) {
-                        this._config[`${sid}_${p}`] = {};
+                        sender._config[`${sid}_${p}`] = {};
                         resolve({});
 
                         return;
@@ -679,165 +851,6 @@
                     sender.warn(`Error encountered looking for page configuration (${sid} : ${p}`, err);
                 });
         });
-
-        addEventListener('CookiebotOnConsentReady', function() {
-            if (!Cookiebot.consent.marketing) {
-                localStorage.removeItem('referralSource');
-                localStorage.removeItem('referralMedium');
-                localStorage.removeItem('referralTerm');
-                localStorage.removeItem('referralCampaign');
-                localStorage.removeItem('referralContent');
-            } else {
-                let uri = new URL(window.location.href);
-
-                let referrer = uri.searchParams.get('utm_source');
-                let campaignMedium = uri.searchParams.get('utm_medium');
-                let campaignKeyword = uri.searchParams.get('utm_term');
-                let campaignName = uri.searchParams.get('utm_campaign');
-                let campaignContent = uri.searchParams.get('utm_content');
-
-                if (referrer?.length > 0) localStorage.referralSource = referrer;
-                if (campaignMedium?.length > 0) localStorage.referralMedium = campaignMedium;
-                if (campaignKeyword?.length > 0) localStorage.referralTerm = campaignKeyword;
-                if (campaignName?.length > 0) localStorage.referralCampaign = campaignName;
-                if (campaignContent?.length > 0) localStorage.referralContent = campaignContent;
-            }
-        });
-
-        if (window.Cookiebot && !Cookiebot.consent.marketing) {
-            localStorage.removeItem('referralSource');
-            localStorage.removeItem('referralMedium');
-            localStorage.removeItem('referralTerm');
-            localStorage.removeItem('referralCampaign');
-            localStorage.removeItem('referralContent');
-        }
-
-        if (window.firebase) {
-            firebase.auth().onAuthStateChanged( u => {
-                if (u) {
-                    sender.site()
-                        .then( s =>
-                            sender.submit({
-                                action: "Login Candidate",
-                                siteID: s.siteID,
-                                eMail: u.email,
-                            })
-                        ).then( r => {
-                            let c = r?.response?.items[0];
-
-                            if (c) {
-                                localStorage._sHandle = c.candidateID;
-                                let s = {
-                                    session: {...c},
-                                    isOAuth: u.providerData[0].providerId !== "password",
-                                    isNew: false,
-                                }
-
-                                sender._session = s;
-
-                                c.photo
-                                = c.photoFileName
-                                = c.cVFileContent
-                                = c.cVFileName
-                                = c.coverLetterContent
-                                = c.coverLetterFileName
-                                = null;
-
-                                localStorage.vinylResponse = JSON.stringify({response: c});
-
-                                sender.pub(message.auth, {...s});
-                            } else {
-                                let name = (u.displayName || '').split(' ');
-
-                                sender.pub(message.auth, {
-                                    isOAuth: true,
-                                    isNew: true,
-                                    session: {
-                                        firebaseUserID: u.uid,
-                                        eMail: u.email,
-                                        surname: name.length > 1 ? name.pop() : '',
-                                        firstName: name.length > 0 ? name.join(' ') : '',
-                                    }
-                                });
-                            }
-                        })
-                } else {
-                    [
-                        'authProvider',
-                        'createAlert',
-                        'currentJobViewed',
-                        'jobID',
-                        'linkedIncode',
-                        'previousApplicationPage',
-                        'resumeBinary',
-                        'resumeFileName',
-                        'resumeLink',
-                        'seekAuthorizationCode',
-                        'vinylResponse',
-                    ].forEach( k => localStorage.removeItem(k) );
-
-                    localStorage.removeItem('_sHandle');
-                    delete sender._session;
-
-                    sender.pub(message.auth);
-                }
-            });
-        }
-
-        let uri = new URL(window.location.href);
-        let linkedInToken = uri.searchParams.get('code');
-        if (linkedInToken) {
-            sender.site()
-                .then( s => shazamme.submit({
-                    action: 'Get Linkedin',
-                    siteID: s.siteID,
-                    linkedIncode: linkedInToken,
-                    redirectUri: encodeURIComponent(`${uri.protocol}//${s.siteDomain}${uri.pathname}`),
-                }))
-                .then( r => r.status && sender.submit({
-                    action: "Login Candidate",
-                    siteID: r.siteID,
-                    eMail: r.email,
-                })).then( r => {
-                    let c = r?.response?.items[0];
-
-                    if (c) {
-                        let s = {
-                            session: {...c},
-                            isOAuth: u.providerData[0].providerId !== "password",
-                            isNew: false,
-                        }
-
-                        localStorage._sHandle = c.candidateID;
-                        sender._session = s;
-
-                        c.photo
-                        = c.photoFileName
-                        = c.cVFileContent
-                        = c.cVFileName
-                        = c.coverLetterContent
-                        = c.coverLetterFileName
-                        = null;
-
-                        localStorage.vinylResponse = JSON.stringify({response: c});
-
-                        sender.pub(message.auth, {...s});
-                    }
-                });
-        }
-
-        if (window.clarity) {
-            let s = shApi.checkLocalStorage('_clarity');
-
-            if (!s) {
-                s = sender.uuid();
-
-                shApi.createLocalStorage('_clarity', s);
-            }
-
-            clarity('identify', s);
-        }
-
     }
 
     if (!window[`shazamme-${version}`]) {

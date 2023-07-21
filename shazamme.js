@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0';
+    const version = '*1.0';
 
     const host = {
         resources: 'https://d1x4k0bobyopcw.cloudfront.net',
@@ -90,70 +90,28 @@
             if (window.firebase) {
                 firebase.auth().onAuthStateChanged( u => {
                     if (u) {
-                        sender.site()
-                            .then( s =>
-                                sender.submit({
-                                    action: "Login Candidate",
-                                    siteID: s.siteID,
-                                    eMail: u.email,
-                                })
-                            ).then( r => {
-                                let c = r?.response?.items[0];
+                        sender.auth(u.email, u.providerData[0].providerId !== "password").then( s => {
+                            if (s) {
+                                sender.pub(message.auth, s);
+                            } else {
+                                let name = (u.displayName || '').split(' ');
 
-                                if (c) {
-                                    localStorage._sHandle = c.candidateID;
-                                    let s = {
-                                        session: {...c},
-                                        isOAuth: u.providerData[0].providerId !== "password",
-                                        isNew: false,
+                                sender._session = {
+                                    isOAuth: u.providerData[0].providerId !== "password",
+                                    isNew: true,
+                                    session: {
+                                        firebaseUserID: u.uid,
+                                        eMail: u.email,
+                                        surname: name.pop() || '',
+                                        firstName: name.join(' '),
                                     }
-
-                                    sender._session = s;
-
-                                    c.photo
-                                    = c.photoFileName
-                                    = c.cVFileContent
-                                    = c.cVFileName
-                                    = c.coverLetterContent
-                                    = c.coverLetterFileName
-                                    = null;
-
-                                    localStorage.vinylResponse = JSON.stringify({response: c});
-
-                                    sender.pub(message.auth, {...s});
-                                } else {
-                                    let name = (u.displayName || '').split(' ');
-
-                                    sender.pub(message.auth, {
-                                        isOAuth: true,
-                                        isNew: true,
-                                        session: {
-                                            firebaseUserID: u.uid,
-                                            eMail: u.email,
-                                            surname: name.length > 1 ? name.pop() : '',
-                                            firstName: name.length > 0 ? name.join(' ') : '',
-                                        }
-                                    });
                                 }
-                            })
+
+                                sender.pub(message.auth, {...sender._session});
+                            }
+                        });
                     } else {
-                        [
-                            'authProvider',
-                            'createAlert',
-                            'currentJobViewed',
-                            'jobID',
-                            'linkedIncode',
-                            'previousApplicationPage',
-                            'resumeBinary',
-                            'resumeFileName',
-                            'resumeLink',
-                            'seekAuthorizationCode',
-                            'vinylResponse',
-                        ].forEach( k => localStorage.removeItem(k) );
-
-                        localStorage.removeItem('_sHandle');
-                        delete sender._session;
-
+                        sender.endSession();
                         sender.pub(message.auth);
                     }
                 });
@@ -162,43 +120,32 @@
             let uri = new URL(window.location.href);
             let linkedInToken = uri.searchParams.get('code');
             if (linkedInToken) {
-                sender.site()
-                    .then( s => shazamme.submit({
+                sender.site().then( s =>
+                    shazamme.submit({
                         action: 'Get Linkedin',
                         siteID: s.siteID,
                         linkedIncode: linkedInToken,
                         redirectUri: encodeURIComponent(`${uri.protocol}//${s.siteDomain}${uri.pathname}`),
-                    }))
-                    .then( r => r.status && sender.submit({
-                        action: "Login Candidate",
-                        siteID: r.siteID,
-                        eMail: r.email,
-                    })).then( r => {
-                        let c = r?.response?.items[0];
-
-                        if (c) {
-                            let s = {
-                                session: {...c},
-                                isOAuth: u.providerData[0].providerId !== "password",
-                                isNew: false,
+                    })
+                ).then( l => {
+                    l.status && sender.auth(l.email, true).then( s => {
+                        if (s) {
+                            sender.pub(message.auth, s);
+                        } else {
+                            sender._session = {
+                                isOAuth: true,
+                                isNew: true,
+                                session: {
+                                    eMail: li.linkedIn.email,
+                                    firstName: li.linkedIn.firstName || '',
+                                    surname: li.linkedIn.lastName || '',
+                                }
                             }
 
-                            localStorage._sHandle = c.candidateID;
-                            sender._session = s;
-
-                            c.photo
-                            = c.photoFileName
-                            = c.cVFileContent
-                            = c.cVFileName
-                            = c.coverLetterContent
-                            = c.coverLetterFileName
-                            = null;
-
-                            localStorage.vinylResponse = JSON.stringify({response: c});
-
-                            sender.pub(message.auth, {...s});
+                            sender.pub(message.auth, {...sender._session});
                         }
                     });
+                });
             }
 
             if (window.clarity) {
@@ -641,8 +588,8 @@
                         token: res.credential,
                         uid: res.user.uid,
                         email: res.additionalUserInfo.profile.email,
-                        lastName: name.length > 1 ? name.pop() : '',
-                        firstName: name.length > 0 ? name.join(' ') : '',
+                        lastName: name.pop() || '',
+                        firstName: name.join(' '),
                         isNew: res.additionalUserInfo.isNewUser,
                     });
                 }).catch(err => {
@@ -715,6 +662,79 @@
             _b[k] = v;
 
             return v;
+        }
+
+        this.auth = (uid, isOAuth = false) => {
+            sender.endSession();
+
+            return sender.site().then( s =>
+                sender.submit({
+                    action: "Verify User",
+                    siteID: s.siteID,
+                    email: uid,
+                }).then( r => {
+                    let p = r?.response?.items[0];
+
+                    if (!p) {
+                        return Promise.resolve();
+                    }
+
+                    sender._session = {
+                        isOAuth: isOAuth,
+                        isNew: false,
+                        isVerified: p.firebaseID?.length > 0,
+                        is: p.is,
+                    }
+
+                    if (p.is?.indexOf('candidate') >= 0) {
+                        return sender.submit({
+                            action: "Login Candidate",
+                            siteID: s.siteID,
+                            eMail: uid,
+                        }).then( r => {
+                            let c = r?.response?.items[0];
+
+                            if (c) {
+                                sender._session.session = {...c}
+                                localStorage._sHandle = c.candidateID;
+
+                                c.photo
+                                = c.photoFileName
+                                = c.cVFileContent
+                                = c.cVFileName
+                                = c.coverLetterContent
+                                = c.coverLetterFileName
+                                = null;
+
+                                localStorage.vinylResponse = JSON.stringify({response: c});
+                            }
+
+                            return Promise.resolve({...sender._session});
+                        });
+                    }
+
+                    return Promise.resolve(...sender._session);
+                })
+            );
+        }
+
+        this.endSession = () => {
+            [
+                'authProvider',
+                'createAlert',
+                'currentJobViewed',
+                'jobID',
+                'linkedIncode',
+                'previousApplicationPage',
+                'resumeBinary',
+                'resumeFileName',
+                'resumeLink',
+                'seekAuthorizationCode',
+                'vinylResponse',
+                '_sHandle',
+            ].forEach( k => localStorage.removeItem(k) );
+
+            delete sender._session;
         }
 
         this.log = (m, ...p) => {

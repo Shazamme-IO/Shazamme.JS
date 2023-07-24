@@ -90,15 +90,18 @@
             if (window.firebase) {
                 firebase.auth().onAuthStateChanged( u => {
                     if (u) {
-                        sender.auth(u.email, u.providerData[0].providerId !== "password").then( s => {
-                            if (s) {
+                        let isOAuth = u.providerData[0].providerId !== "password";
+                        let isNew = isOAuth && (new Date() - new Date(parseInt(u.metadata.createdAt)) <= 1 * 60 * 1000);
+
+                        sender.auth(u.email, isOAuth).then( s => {
+                            if (s || !isOAuth) {
                                 sender.pub(message.auth, s);
-                            } else {
+                            } else if (isOAuth) {
                                 let name = (u.displayName || '').split(' ');
 
                                 sender._session = {
-                                    isOAuth: u.providerData[0].providerId !== "password",
-                                    isNew: true,
+                                    isOAuth: isOAuth,
+                                    isNew: isNew,
                                     session: {
                                         firebaseUserID: u.uid,
                                         eMail: u.email,
@@ -135,11 +138,9 @@
                             sender._session = {
                                 isOAuth: true,
                                 isNew: true,
-                                session: {
-                                    eMail: li.linkedIn.email,
-                                    firstName: li.linkedIn.firstName || '',
-                                    surname: li.linkedIn.lastName || '',
-                                }
+                                email: li.linkedIn.email,
+                                firstName: li.linkedIn.firstName || '',
+                                lastName: li.linkedIn.lastName || '',
                             }
 
                             sender.pub(message.auth, {...sender._session});
@@ -586,7 +587,7 @@
 
                     resolve({
                         token: res.credential,
-                        uid: res.user.uid,
+                        firebaseUserID: res.user.uid,
                         email: res.additionalUserInfo.profile.email,
                         lastName: name.pop() || '',
                         firstName: name.join(' '),
@@ -600,50 +601,26 @@
                         msg: err && err.message || 'We ran into an issue. Plase try again.'
                     });
                 });
+
             });
+
+            const user = () => firebase.auth.currentUser();
+
+            const verify = (c) => firebase.auth.checkActionCode(code);
 
             return {
                 create,
                 auth,
                 oauth,
+                user,
+                verify,
             }
         }
 
-        this.currentUser = (refresh = false) => new Promise( (resolve, reject) => {
-            if (this._session && !refresh) {
-                resolve({...this._session});
-                return;
-            }
-
-            if (localStorage._sHandle?.length > 0) {
-                this.site()
-                    .then( s =>
-                        this.submit({
-                            action: 'Get Candidate By ID',
-                            candidateID: localStorage._sHandle,
-                            siteID: s.siteID,
-                        })
-                    ).then( r => {
-                        let c = r?.response?.items[0];
-
-                        if (c) {
-                            let s = {
-                                session: c,
-                                isOAuth: false,
-                                isNew: false,
-                            }
-
-                            sender._session = s;
-                            resolve({...s});
-                        } else {
-                            resolve();
-                        }
-                    });
-
-            } else {
-                resolve();
-            }
-        });
+        this.currentUser = (refresh = false) =>
+            (this._session && !refresh && Promise.resolve({...this._session}))
+            || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
+            || Promise.resolve();
 
         this.bag = (k, v) => {
             if (k === undefined) {
@@ -680,40 +657,45 @@
                     }
 
                     sender._session = {
+                        id: p.clientUserID,
+                        email: p.email,
+                        firstName: p.firstName,
+                        lastName: p.lastName,
+                        siteID: s.siteID,
                         isOAuth: isOAuth,
                         isNew: false,
                         isVerified: p.firebaseID?.length > 0,
                         is: p.is,
                     }
 
-                    if (p.is?.indexOf('candidate') >= 0) {
-                        return sender.submit({
-                            action: "Login Candidate",
-                            siteID: s.siteID,
-                            eMail: uid,
-                        }).then( r => {
-                            let c = r?.response?.items[0];
+                    localStorage._s = btoa(JSON.stringify(sender._session));
 
-                            if (c) {
-                                sender._session.session = {...c}
-                                localStorage._sHandle = c.candidateID;
-
-                                c.photo
-                                = c.photoFileName
-                                = c.cVFileContent
-                                = c.cVFileName
-                                = c.coverLetterContent
-                                = c.coverLetterFileName
-                                = null;
-
-                                localStorage.vinylResponse = JSON.stringify({response: c});
+                    return sender._userRoles(sender._session).then( r => {
+                        r?.forEach( x => {
+                            if (x) {
+                                sender._session = {
+                                    ...sender._session,
+                                    ...x
+                                }
                             }
-
-                            return Promise.resolve({...sender._session});
                         });
-                    }
 
-                    return Promise.resolve(...sender._session);
+                        let c = sender._session.candidate;
+
+                        if (c) {
+                            localStorage.vinylResponse = JSON.stringify({response: {
+                                ...c,
+                                photo: null,
+                                photoFileName: null,
+                                cVFileContent: null,
+                                cVFileName: null,
+                                coverLetterContent: null,
+                                coverLetterFileName: null,
+                            }});
+                        }
+
+                        return Promise.resolve({...sender._session});
+                    });
                 })
             );
         }
@@ -731,7 +713,7 @@
                 'resumeLink',
                 'seekAuthorizationCode',
                 'vinylResponse',
-                '_sHandle',
+                '_s',
             ].forEach( k => localStorage.removeItem(k) );
 
             delete sender._session;
@@ -871,6 +853,18 @@
                     sender.warn(`Error encountered looking for page configuration (${sid} : ${p}`, err);
                 });
         });
+
+        this._userRoles = (s) => Promise.all([
+            s.is?.indexOf('candidate') >= 0 && sender.submit({
+                    action: "Login Candidate",
+                    siteID: s.siteID,
+                    eMail: s.email,
+                }).then( r => {
+                    let c = r?.response?.items[0];
+
+                    return Promise.resolve(c && { candidate: {...c} });
+                }),
+        ]);
     }
 
     if (!window[`shazamme-${version}`]) {

@@ -1,5 +1,5 @@
 (() => {
-    const version = '*1.0';
+    const version = '1.0';
 
     const host = {
         resources: 'https://d1x4k0bobyopcw.cloudfront.net',
@@ -89,6 +89,8 @@
 
             if (window.firebase) {
                 firebase.auth().onAuthStateChanged( u => {
+                    sender.endSession();
+
                     if (u) {
                         let isOAuth = u.providerData[0].providerId !== "password";
                         let isNew = isOAuth && (new Date() - new Date(parseInt(u.metadata.createdAt)) <= 1 * 60 * 1000);
@@ -101,20 +103,17 @@
 
                                 sender._session = {
                                     isOAuth: isOAuth,
-                                    isNew: isNew,
-                                    session: {
-                                        firebaseUserID: u.uid,
-                                        eMail: u.email,
-                                        surname: name.pop() || '',
-                                        firstName: name.join(' '),
-                                    }
+                                    isNew: !s || isNew,
+                                    firebaseUserID: u.uid,
+                                    email: u.email,
+                                    lastName: name.pop() || '',
+                                    firstName: name.join(' '),
                                 }
 
                                 sender.pub(message.auth, {...sender._session});
                             }
                         });
                     } else {
-                        sender.endSession();
                         sender.pub(message.auth);
                     }
                 });

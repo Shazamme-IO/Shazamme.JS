@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0';
+    const version = '1.0.1';
 
     const host = {
         resources: 'https://d1x4k0bobyopcw.cloudfront.net',
@@ -8,6 +8,13 @@
     const message = {
         auth: 'site-auth',
     }
+
+    const provider = {
+        linkedin:'linkedinProvider',
+        seek: 'seekProvider',
+    }
+
+    const seekAdvertiser = '20690608';
 
     let _s = {}
     let _ps = {}
@@ -114,38 +121,104 @@
                             }
                         });
                     } else {
+                        sender.endSession();
                         sender.pub(message.auth);
                     }
                 });
             }
 
             let uri = new URL(window.location.href);
-            let linkedInToken = uri.searchParams.get('code');
-            if (linkedInToken) {
-                sender.site().then( s =>
-                    shazamme.submit({
-                        action: 'Get Linkedin',
-                        siteID: s.siteID,
-                        linkedIncode: linkedInToken,
-                        redirectUri: encodeURIComponent(`${uri.protocol}//${s.siteDomain}${uri.pathname}`),
-                    })
-                ).then( l => {
-                    l.status && sender.auth(l.email, true).then( s => {
-                        if (s) {
-                            sender.pub(message.auth, s);
-                        } else {
-                            sender._session = {
-                                isOAuth: true,
-                                isNew: true,
-                                email: li.linkedIn.email,
-                                firstName: li.linkedIn.firstName || '',
-                                lastName: li.linkedIn.lastName || '',
-                            }
+            let oAuthToken = uri.searchParams.get('code');
 
-                            sender.pub(message.auth, {...sender._session});
-                        }
-                    });
-                });
+            if (oAuthToken) {
+                switch(sender.cookie('_op')) {
+                    case provider.seek : {
+                        sender.site().then( s => {
+                            let j = JSON.parse(localStorage.getItem('currentJobViewed'));
+                            let positionUri = `${uri.origin}${sender.bag('_site:pathJobDetails') || '/job-details'}/${new URL(j.data.jobURL).pathname.split('/').pop()}`;
+
+                            shazamme.submit({
+                                action: 'Get Seek',
+                                siteID: s.siteID,
+                                redirectUri: `${uri.origin}${uri.pathname}`,
+                                seekAuthorizationCode: oAuthToken,
+                                applicationFormUrl: encodeURIComponent(`${uri.href}`),
+                                advertiserId: seekAdvertiser,
+                                positionTitle: j.data.jobName,
+                                positionUri: positionUri,
+                                countryCode: 'AU',
+                                postalCode: j.data.postalCode || '2601', //use Canberra as default
+                            }).then( k => {
+                                if (k.response.isExistingVinylEmail) {
+                                    sender.auth(seek.response.applicantInfo.emailAddress, true).then( s => {
+                                        if (s) {
+                                            sender.pub(message.auth, s);
+                                        } else {
+                                            sender._session = {
+                                                isOAuth: true,
+                                                isNew: true,
+                                                email: k.response.applicantInfo.emailAddress,
+                                                firstName: k.response.applicantInfo.firstName || '',
+                                                lastName: k.response.applicantInfo.lastName || '',
+                                                cVFileContent: k.response.resumeBinary,
+                                                cVFileName: k.response.resumeFileName,
+                                                provider: sender.cookie('_op'),
+                                            }
+
+                                            sender.pub(message.auth, {...sender._session});
+                                        }
+                                    });
+                                } else {
+                                    sender._session = {
+                                        isOAuth: true,
+                                        isNew: true,
+                                        email: k.response.applicantInfo.emailAddress,
+                                        firstName: k.response.applicantInfo.firstName || '',
+                                        lastName: k.response.applicantInfo.lastName || '',
+                                        cVFileContent: k.response.resumeBinary,
+                                        cVFileName: k.response.resumeFileName,
+                                        provider: sender.cookie('_op'),
+                                    }
+
+                                    sender.pub(message.auth, {...sender._session});
+                                }
+                            });
+                        });
+
+                        break;
+                    }
+
+                    case provider.linkedin :
+                    default: {
+                        sender.site().then( s =>
+                            shazamme.submit({
+                                action: 'Get Linkedin',
+                                siteID: s.siteID,
+                                linkedIncode: oAuthToken,
+                                redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
+                            })
+                        ).then( l => {
+                            l.status && sender.auth(l.email, true).then( s => {
+                                if (s) {
+                                    sender.pub(message.auth, s);
+                                } else {
+                                    sender._session = {
+                                        isOAuth: true,
+                                        isNew: true,
+                                        email: li.linkedIn.email,
+                                        firstName: li.linkedIn.firstName || '',
+                                        lastName: li.linkedIn.lastName || '',
+                                        provider: sender.cookie('_op'),
+                                    }
+
+                                    sender.pub(message.auth, {...sender._session});
+                                }
+                            });
+                        });
+
+                        break;
+                    }
+                }
             }
 
             if (window.clarity) {
@@ -482,13 +555,27 @@
             }).then( res => {
                 let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
 
-                if (!s.isLive) {
-                    s.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
-                    s.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
+                if (s?.isLive) {
+                    sender._site = s;
+                    resolve(sender._site);
+
+                    return;
                 }
 
-                sender._site = s;
-                resolve(sender._site);
+                $.ajax({
+                    url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions',
+                    type: 'POST',
+                    data: JSON.stringify({
+                        action: 'Get Site ID',
+                        dudaSiteID: this._sid,
+                    })
+                }).then( res => {
+                    sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                    sender._site.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
+                    sender._site.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
+
+                    resolve(sender._site);
+                });
             });
         });
 
@@ -640,6 +727,36 @@
             return v;
         }
 
+        this.cookie = (n, v, e) => {
+            if (v === undefined) {
+                let c = new RegExp(`${n}{1}=(.+?)(;|$)`).exec(document.cookie)?.slice(1,2)?.pop();
+
+                return c?.length > 0 && unescape(c);
+            }
+
+            if (v === null) {
+                document.cookie = `${n}=''; Path=/; Expires=${new Date(0).toUTCString()};`;
+                return;
+            }
+
+            document.cookie = `${n}=${v}; Path=/; ${e ? `Expires=${e.toUTCString()};` : ''}`;
+        }
+
+        this.store = (k, v) => {
+            if (v === undefined) {
+                return localStorage.getItem(k);
+            }
+
+            if (v === null) {
+                localStorage.removeItem(k);
+                return undefined;
+            }
+
+            localStorage.setItem(k, v);
+
+            return v;
+        }
+
         this.auth = (uid, isOAuth = false) => {
             sender.endSession();
 
@@ -697,6 +814,32 @@
                     });
                 })
             );
+        }
+
+        this.oauth = (p) => {
+            sender.site().then(s => {
+                sender.endSession();
+
+                let uri = new URL(window.location.href);
+                let r = `${uri.protocol}//${s.siteDomain}${uri.pathname}`;
+                let e = new Date(new Date().getTime + 2 * 60 * 1000);
+
+                switch (p) {
+                    case provider.linkedin: {
+                        sender.cookie('_op', p, e);
+                        window.open(`https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${s.linkedinClientID}&redirect_uri=${encodeURIComponent(r)}&scope=r_liteprofile%20r_emailaddress`, '_self');
+                        break;
+                    }
+
+                    case provider.seek: {
+                        sender.cookie('_op', p, e);
+                        window.open(`https://www.seek.com.au/api/iam/oauth2/authorize?client_id=${s.seekClientID}&redirect_uri=${encodeURIComponent(r)}&advertiser_id=${seekAdvertiser}&scope=r_profile_apply&response_type=code`, '_self');
+                        break;
+                    }
+
+                    default: break;
+                }
+            });
         }
 
         this.endSession = () => {

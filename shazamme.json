@@ -1,0 +1,112 @@
+{
+	"config": {
+		"job-apply": {
+			"fieldList": [
+				{
+					"fieldLabel": "Salutation",
+					"fieldName": "salutation",
+					"fieldType": "dropdown",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "First Name",
+					"fieldName": "firstName",
+					"fieldRequired": true,
+					"fieldType": "text"
+				},
+				{
+					"fieldLabel": "Last Name",
+					"fieldName": "surname",
+					"fieldRequired": true,
+					"fieldType": "text"
+				},
+				{
+					"fieldLabel": "Email",
+					"fieldName": "eMail",
+					"fieldRequired": true,
+					"fieldType": "text",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "Phone Number",
+					"fieldName": "phone",
+					"fieldRequired": true,
+					"fieldType": "text",
+					"fullRow": true
+				},
+				{
+					"fieldName": "separator"
+				},
+				{
+					"fieldLabel": "Resume",
+					"fieldName": "cvFileContent",
+					"fileName": "cvFileName",
+					"fieldRequired": true,
+					"fieldType": "file",
+					"showOnAuth": true
+				},
+				{
+					"fieldLabel": "Cover Letter",
+					"fieldName": "coverLetterContent",
+					"fileName": "coverLetterFileName",
+					"fieldType": "file",
+					"showOnAuth": true
+				},
+				{
+					"fieldName": "separator",
+					"showOnAuth": true
+				},
+				{
+					"fieldLabel": "I agree to the terms",
+					"fieldName": "",
+					"fieldRequired": true,
+					"fieldType": "checkbox",
+					"showOnAuth": true
+				}
+			]
+		},
+
+		"login-dialog": {
+			"fieldList": [
+				{
+					"fieldLabel": "Email:",
+					"fieldName": "uid",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "Password:",
+					"fieldName": "secret",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "Forgot password?",
+					"fieldName": "button",
+					"fullRow": true,
+					"buttonLink": "/forgot-passowrd"
+				},
+				{
+					"fieldLabel": "Read our privacy policy",
+					"fieldName": "button",
+					"fullRow": true,
+					"buttonLink": "/privacy-policy"
+				}
+			]
+		}
+	},
+
+	"trace": {
+		"application-form": {
+			"warn": [
+				{
+					"useSingleJob": true
+				}
+			],
+
+			"error": [
+			],
+
+			"trace": [
+			]
+		}
+	}
+}

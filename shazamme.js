@@ -690,9 +690,15 @@
 
             });
 
-            const user = () => firebase.auth.currentUser();
+            const user = () => firebase.auth().currentUser;
 
-            const verify = (c) => firebase.auth.checkActionCode(code);
+            const verify = (c) => firebase.auth().checkActionCode(c);
+
+            const reset = (uid) => firebase.auth().sendPasswordResetEmail(uid);
+
+            const verifyReset = (c) => firebase.auth().verifyPasswordResetCode(c);
+
+            const confirmReset = (c, secret) => firebase.auth().confirmPasswordReset(c, secret);
 
             return {
                 create,
@@ -700,6 +706,9 @@
                 oauth,
                 user,
                 verify,
+                reset,
+                verifyReset,
+                confirmReset,
             }
         }
 
@@ -860,6 +869,23 @@
 
             delete sender._session;
         }
+
+        this.client = () =>
+            sender.site().then( s => {
+                let uri = s.isLive
+                    ? 'https://shazamme.io/Job-Listing/src/php/client/actions'
+                    : 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/client/actions';
+
+                return Promise.resolve({
+                    submit: (d) =>
+                        $.ajax({
+                            url: uri,
+                            type: 'POST',
+                            data: JSON.stringify(d),
+                        }),
+                })
+            });
+
 
         this.log = (m, ...p) => {
             console.log(m, ...p);

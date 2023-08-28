@@ -198,16 +198,16 @@
                                 redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
                             })
                         ).then( l => {
-                            l.status && sender.auth(l.email, true).then( s => {
+                            l.status && sender.auth(l.response.email, true).then( s => {
                                 if (s) {
                                     sender.pub(message.auth, s);
                                 } else {
                                     sender._session = {
                                         isOAuth: true,
                                         isNew: true,
-                                        email: li.linkedIn.email,
-                                        firstName: li.linkedIn.firstName || '',
-                                        lastName: li.linkedIn.lastName || '',
+                                        email: l.response.email,
+                                        firstName: l.response.firstName || '',
+                                        lastName: l.response.lastName || '',
                                         provider: sender.cookie('_op'),
                                     }
 
@@ -594,7 +594,7 @@
                 let fail = () => {
                     console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
 
-                    $.ajax(`${sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                    $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
                         if (c.useCache) {
                             c._cache = r;
                         }
@@ -872,7 +872,7 @@
 
         this.client = () =>
             sender.site().then( s => {
-                let uri = s.isLive
+                const uri = s?.isLive
                     ? 'https://shazamme.io/Job-Listing/src/php/client/actions'
                     : 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/client/actions';
 
@@ -883,6 +883,11 @@
                             type: 'POST',
                             data: JSON.stringify(d),
                         }),
+
+                    fetch: (c) => sender.fetch({
+                        ...c,
+                        actionUrl: uri,
+                    }),
                 })
             });
 

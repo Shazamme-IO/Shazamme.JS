@@ -28,13 +28,15 @@
 
         const sender = this;
 
-        let _rp = undefined;
-        let _ready = undefined;
+        let _ready = window[`shazamme-${version}-ready`];
 
         this.ready = (sid, p) => {
-            if (_rp) return _ready;
+            if (_ready) {
+                return _ready;
+            }
 
-            _ready = new Promise( r => _rp = r );
+            let _rp = undefined;
+            window[`shazamme-${version}-ready`] = _ready = new Promise( r => _rp = r );
 
             sender._sid = sender._sid || sid;
 
@@ -54,12 +56,9 @@
 
                 sender._pageConfig(sid, p),
             ])
-            .then( () => {
-                _rp();
-             })
+            .then()
             .catch( (ex) => {
                 console.error(ex);
-                _rp();
             });
 
             addEventListener('CookiebotOnConsentReady', function() {
@@ -96,8 +95,6 @@
 
             if (window.firebase) {
                 firebase.auth().onAuthStateChanged( u => {
-                    sender.endSession();
-
                     if (u) {
                         let isOAuth = u.providerData[0].providerId !== "password";
                         let isNew = isOAuth && (new Date() - new Date(parseInt(u.metadata.createdAt)) <= 1 * 60 * 1000);
@@ -121,7 +118,6 @@
                             }
                         });
                     } else {
-                        sender.endSession();
                         sender.pub(message.auth);
                     }
                 });
@@ -166,6 +162,7 @@
                                             }
 
                                             sender.pub(message.auth, {...sender._session});
+                                            _rp();
                                         }
                                     });
                                 } else {
@@ -181,7 +178,10 @@
                                     }
 
                                     sender.pub(message.auth, {...sender._session});
+                                    _rp();
                                 }
+                            }).catch( () => {
+                                _rp();
                             });
                         });
 
@@ -213,12 +213,18 @@
 
                                     sender.pub(message.auth, {...sender._session});
                                 }
+
+                                _rp();
                             });
+                        }).catch( () => {
+                            _rp();
                         });
 
                         break;
                     }
                 }
+            } else {
+                _rp();
             }
 
             if (window.clarity) {
@@ -690,6 +696,45 @@
 
             });
 
+            const signOut = (end = true) => {
+                firebase.auth().signOut().then( () => {
+                    if (end) {
+                        sender.endSession();
+                    }
+
+                    sender.pub(message.auth);
+                });
+            }
+
+            const _delete = (secret) => {
+                let u = firebase.auth().currentUser;
+
+                if (!u) {
+                    return Promise.reject();
+                }
+
+                const provider = u.providerData[0].providerId;
+
+                if (provider === 'password') {
+                    if (secret?.length > 0) {
+                        const cred = firebase.auth.EmailAuthProvider.credential(
+                            u.email,
+                            secret,
+                        );
+
+                        return u.reauthenticateWithCredential(cred).then( r => r.user.delete() );
+                    }
+
+                    return Promise.reject();
+                }
+
+                const oauth = provider === "google.com" ? googleProvider : facebookProvider;
+
+                return firebase.auth().signInWithPopup(oauth)
+                    .then( r => u.reauthenticateWithCredential(r.credential) )
+                    .then( (r) => r.user.delete() );
+            }
+
             const user = () => firebase.auth().currentUser;
 
             const verify = (c) => firebase.auth().checkActionCode(c);
@@ -704,11 +749,13 @@
                 create,
                 auth,
                 oauth,
+                signOut,
                 user,
                 verify,
                 reset,
                 verifyReset,
                 confirmReset,
+                delete: _delete,
             }
         }
 
@@ -767,8 +814,6 @@
         }
 
         this.auth = (uid, isOAuth = false) => {
-            sender.endSession();
-
             return sender.site().then( s =>
                 sender.submit({
                     action: "Verify User",
@@ -783,6 +828,7 @@
 
                     sender._session = {
                         id: p.clientUserID,
+                        firebaseUserID: p.firebaseID,
                         email: p.email,
                         firstName: p.firstName,
                         lastName: p.lastName,
@@ -1033,7 +1079,7 @@
                     siteID: s.siteID,
                     eMail: s.email,
                 }).then( r => {
-                    let c = r?.response?.items[0];
+                    let c = r?.response?.items?.at(0);
 
                     return Promise.resolve(c && { candidate: {...c} });
                 }),

@@ -82,7 +82,7 @@
 					"fieldLabel": "Forgot password?",
 					"fieldName": "button",
 					"fullRow": true,
-					"buttonLink": "/forgot-passowrd"
+					"buttonLink": "/forgot-password"
 				},
 				{
 					"fieldLabel": "Read our privacy policy",

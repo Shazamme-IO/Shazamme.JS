@@ -810,6 +810,8 @@
             || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
             || Promise.resolve();
 
+        this.currentSession = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
+
         this.bag = (k, v) => {
             if (k === undefined) {
                 return _b;

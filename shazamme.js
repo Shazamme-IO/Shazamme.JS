@@ -192,8 +192,8 @@
                     default: {
                         sender.site().then( s =>
                             shazamme.submit({
-                                action: 'Get Linkedin',
-                                siteID: s.siteID,
+                                action: s?.linkedinOpenID ? 'Get Linkedin OpenID' : 'Get Linkedin',
+                                siteID: s?.siteID,
                                 linkedIncode: oAuthToken,
                                 redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
                             })
@@ -697,13 +697,12 @@
             });
 
             const signOut = (end = true) => {
-                firebase.auth().signOut().then( () => {
-                    if (end) {
-                        sender.endSession();
-                    }
-
+                if (end) {
+                    sender.endSession();
                     sender.pub(message.auth);
-                });
+                }
+
+                firebase.auth().signOut().then();
             }
 
             const _delete = (secret) => {
@@ -929,8 +928,10 @@
 
                 switch (p) {
                     case provider.linkedin: {
+                        let scope = encodeURIComponent(s.linkedinOpenID ? 'profile email openid' : 'r_liteprofile r_emailaddress');
+
                         sender.cookie('_op', p, e);
-                        window.open(`https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${s.linkedinClientID}&redirect_uri=${encodeURIComponent(r)}&scope=r_liteprofile%20r_emailaddress`, '_self');
+                        window.open(`https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${s.linkedinClientID}&redirect_uri=${encodeURIComponent(r)}&scope=${scope}`, '_self');
                         break;
                     }
 

@@ -804,6 +804,80 @@
             }
         }
 
+        this.able = () => {
+            const token = '_s_able';
+
+            const fetch = (maxAttempt = 5, retryWait = 500) => new Promise( (resolve, reject) => {
+                let u = sender.currentSession();
+
+                if (!u) {
+                    reject();
+                }
+
+                let attempt = 0;
+
+                const go = () => {
+                    sender.submit({
+                        action: 'Able Lookup',
+                        email: u.email,
+                        token: sender.cookie(token),
+                    })
+                    .then( r => {
+                        if (r.status) {
+                            resolve(r);
+                        } else if (attempt++ < maxAttempt + 1) {
+                            setTimeout(go, retryWait);
+                        } else {
+                            reject();
+                        }
+                    });
+                }
+
+                go();
+            });
+
+            const signUp = (id) => sender.submit({
+                action: 'Able Sign Up Link',
+                applicantID: id,
+                token: sender.cookie(token),
+            });
+
+            const signIn = (id) => sender.submit({
+                action: 'Able Sign In Link',
+                applicantID: id,
+                token: sender.cookie(token),
+            });
+
+            if (sender.cookie(token)) {
+                return Promise.resolve({
+                    fetch: fetch,
+                    signUp: signUp,
+                    signIn: signIn,
+                });
+            }
+
+            return sender.site()
+                .then( s => sender.submit({
+                    action: 'Able Authenticate',
+                    siteID: s.siteID,
+                }))
+                .then( r => {
+                    let t = r?.response;
+
+                    if (t) {
+                        sender.cookie(token, t.access_token, new Date(new Date().getTime() + t.expires_in * 1000));
+
+                        return Promise.resolve({
+                            fetch: fetch,
+                            signUp: signUp,
+                            signIn: signIn,
+                        });
+                    }
+
+                    return Promise.reject();
+                });
+        }
+
         this.currentUser = (refresh = false) =>
             (this._session && !refresh && Promise.resolve({...this._session}))
             || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))

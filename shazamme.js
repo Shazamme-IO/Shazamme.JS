@@ -968,6 +968,9 @@
                         isNew: false,
                         isVerified: p.firebaseID?.length > 0,
                         is: p.is,
+                        clients: r.response.items
+                            .map( i => i.clientID )
+                            .filter( (v, i, self) => self.indexOf(v) === i ),
                     }
 
                     localStorage._s = btoa(JSON.stringify(sender._session));
@@ -1216,6 +1219,21 @@
 
                     return Promise.resolve(c && { candidate: {...c} });
                 }),
+
+            s.is?.find( i => i.startsWith('client') ) && sender.client().then( c => c.submit({
+                    action: "Get Clients",
+                    siteID: s.siteID,
+                    clientUserID: s.id,
+                })).then( r => {
+                    let l = r?.response?.items;
+
+                    return Promise.resolve( l?.length > 0 && {clients: l.map( i => {
+                        return {
+                            id: i.clientID,
+                            name: i.clientName,
+                        }
+                    })});
+                }).catch( () => Promise.resolve() ),
         ]);
     }
 

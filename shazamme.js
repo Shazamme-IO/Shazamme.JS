@@ -573,6 +573,7 @@
 
                 if (s?.isLive) {
                     sender._site = s;
+                    sender._site.documentUri = 'https://shazamme.io/candidate-document/';
                     resolve(sender._site);
 
                     return;
@@ -589,6 +590,7 @@
                     sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
                     sender._site.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
                     sender._site.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
+                    sender._site.documentUri = 'https://staging.shazamme.salsa.hosting/candidate-document/';
 
                     resolve(sender._site);
                 });
@@ -1116,6 +1118,32 @@
                     }
                 );
             }
+        });
+
+        this.dragula = () => new Promise( (resolve, reject) => {
+            $.getScript("https://d1x4k0bobyopcw.cloudfront.net/dragula/dragula.min.js",
+                function() {
+                    $('head').append($('<link rel="stylesheet" type="text/css" href="https://d1x4k0bobyopcw.cloudfront.net/dragula/dragula.min.css" crossorigin="anonymous" />'));
+                    resolve(dragula);
+                },
+
+                function() {
+                    reject();
+                }
+            );
+        });
+
+        this.colorChooser = () => new Promise( (resolve, reject) => {
+            $.getScript("https://d1x4k0bobyopcw.cloudfront.net/choose-color/choose-color.js",
+                function() {
+                    $('head').append($('<link rel="stylesheet" type="text/css" href="https://d1x4k0bobyopcw.cloudfront.net/choose-color/choose-color.css" crossorigin="anonymous" />'))
+                    resolve();
+                },
+
+                function() {
+                    reject();
+                }
+            );
         });
 
         this._v = version;

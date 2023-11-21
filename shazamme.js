@@ -178,6 +178,12 @@
                     localStorage.removeItem('referralTerm');
                     localStorage.removeItem('referralCampaign');
                     localStorage.removeItem('referralContent');
+
+                    sessionStorage.removeItem('referralSource');
+                    sessionStorage.removeItem('referralMedium');
+                    sessionStorage.removeItem('referralTerm');
+                    sessionStorage.removeItem('referralCampaign');
+                    sessionStorage.removeItem('referralContent');
                 } else {
                     let uri = new URL(window.location.href);
 
@@ -187,11 +193,16 @@
                     let campaignName = uri.searchParams.get('utm_campaign');
                     let campaignContent = uri.searchParams.get('utm_content');
 
-                    if (referrer?.length > 0) localStorage.referralSource = referrer;
-                    if (campaignMedium?.length > 0) localStorage.referralMedium = campaignMedium;
-                    if (campaignKeyword?.length > 0) localStorage.referralTerm = campaignKeyword;
-                    if (campaignName?.length > 0) localStorage.referralCampaign = campaignName;
-                    if (campaignContent?.length > 0) localStorage.referralContent = campaignContent;
+                    if (referrer?.length > 0) {
+                        sessionStorage.referralSource = referrer;
+                    } else if (document.referrer?.length > 0) {
+                        sessionStorage.referralSource = sessionStorage.referralSource || document.referrer;
+                    }
+
+                    if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
+                    if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
+                    if (campaignName?.length > 0) sessionStorage.referralCampaign = campaignName;
+                    if (campaignContent?.length > 0) sessionStorage.referralContent = campaignContent;
                 }
             });
 
@@ -201,6 +212,31 @@
                 localStorage.removeItem('referralTerm');
                 localStorage.removeItem('referralCampaign');
                 localStorage.removeItem('referralContent');
+
+                sessionStorage.removeItem('referralSource');
+                sessionStorage.removeItem('referralMedium');
+                sessionStorage.removeItem('referralTerm');
+                sessionStorage.removeItem('referralCampaign');
+                sessionStorage.removeItem('referralContent');
+            } else {
+                    let uri = new URL(window.location.href);
+
+                    let referrer = uri.searchParams.get('utm_source');
+                    let campaignMedium = uri.searchParams.get('utm_medium');
+                    let campaignKeyword = uri.searchParams.get('utm_term');
+                    let campaignName = uri.searchParams.get('utm_campaign');
+                    let campaignContent = uri.searchParams.get('utm_content');
+
+                    if (referrer?.length > 0) {
+                        sessionStorage.referralSource = referrer;
+                    } else if (document.referrer?.length > 0) {
+                        sessionStorage.referralSource = sessionStorage.referralSource || document.referrer;
+                    }
+
+                    if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
+                    if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
+                    if (campaignName?.length > 0) sessionStorage.referralCampaign = campaignName;
+                    if (campaignContent?.length > 0) sessionStorage.referralContent = campaignContent;
             }
 
             if (window.firebase) {
@@ -890,12 +926,22 @@
                 });
         }
 
-        this.currentUser = (refresh = false) =>
+        this.currentUser = (refresh = false) => {
+            this.trace('Warning: Use of the method currentUser() is deprecated. Please replace with the method user()');
+
+            return (this._session && !refresh && Promise.resolve({...this._session}))
+            || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
+            || Promise.resolve();
+        }
+
+        this.currentSession = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
+
+        this.user = (refresh = false) =>
             (this._session && !refresh && Promise.resolve({...this._session}))
             || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
             || Promise.resolve();
 
-        this.currentSession = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
+        this.session = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
 
         this.bag = (k, v) => {
             if (k === undefined) {
@@ -942,6 +988,21 @@
             }
 
             localStorage.setItem(k, v);
+
+            return v;
+        }
+
+        this.session = (k, v) => {
+            if (v === undefined) {
+                return sessionStorage.getItem(k);
+            }
+
+            if (v === null) {
+                sessionStorage.removeItem(k);
+                return undefined;
+            }
+
+            sessionStorage.setItem(k, v);
 
             return v;
         }

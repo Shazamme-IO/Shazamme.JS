@@ -108,5 +108,11 @@
 			"trace": [
 			]
 		}
+	},
+
+	"run": {
+		"job-results": [
+			"$(window).on('scroll', function() { $('[data-widget-id={{widgetId}}]').attr('style', 'height: auto !important;'); } );"
+		]
 	}
 }

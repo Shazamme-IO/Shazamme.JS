@@ -21,6 +21,7 @@
     let _c = {}
     let _tr = {}
     let _b = {}
+    let _r  = {}
 
     function _init() {
         const ActionUrl = 'https://shazamme.io/Job-Listing/src/php/actions';
@@ -149,8 +150,9 @@
             Promise.all([
                 $.get(`${host.resources}/shazamme.json`)
                     .then( j => {
-                        _c = j.config;
-                        _tr = j.trace;
+                        _c = j?.config || {};
+                        _tr = j?.trace || {};
+                        _r = j?.run || {};
 
                         return Promise.resolve();
                     },
@@ -453,6 +455,12 @@
                 }
 
                 sender._pageConfig(config.siteId, config.page).then( () => {
+                    let r = '';
+
+                    while (r = _r[n]?.pop()) {
+                        eval(r.replace(/{{widgetId}}/g, config.widgetId));
+                    }
+
                     for (let l in _tr[n]) {
                         for (let t in _tr[n][l]) {
                             if (config[t] === _tr[n][l][t]) {
@@ -467,7 +475,7 @@
                             }
                         }
                     }
-                })
+                });
 
                 return o;
             } else {
@@ -1273,6 +1281,13 @@
                                 ...c[w],
                                 ...j.value?.config[w],
                             }
+                        }
+
+                        for (let w in j.value?.run) {
+                            _r[w] = [
+                                ..._r[w],
+                                ...j.value?.run[w],
+                            ]
                         }
 
                         for (let w in j.value?.trace) {

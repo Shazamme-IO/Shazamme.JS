@@ -197,8 +197,16 @@
 
                     if (referrer?.length > 0) {
                         sessionStorage.referralSource = referrer;
-                    } else if (document.referrer?.length > 0) {
-                        sessionStorage.referralSource = sessionStorage.referralSource || document.referrer;
+                    } else if (document.referrer?.length > 0 && !sessionStorage.referralSource) {
+                        uri = new URL(document.referrer);
+
+                        referrer = uri.searchParams.get('utm_source');
+                        campaignMedium = uri.searchParams.get('utm_medium');
+                        campaignKeyword = uri.searchParams.get('utm_term');
+                        campaignName = uri.searchParams.get('utm_campaign');
+                        campaignContent = uri.searchParams.get('utm_content');
+
+                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
@@ -231,8 +239,16 @@
 
                     if (referrer?.length > 0) {
                         sessionStorage.referralSource = referrer;
-                    } else if (document.referrer?.length > 0) {
-                        sessionStorage.referralSource = sessionStorage.referralSource || document.referrer;
+                    } else if (document.referrer?.length > 0 && !sessionStorage.referralSource) {
+                        uri = new URL(document.referrer);
+
+                        referrer = uri.searchParams.get('utm_source');
+                        campaignMedium = uri.searchParams.get('utm_medium');
+                        campaignKeyword = uri.searchParams.get('utm_term');
+                        campaignName = uri.searchParams.get('utm_campaign');
+                        campaignContent = uri.searchParams.get('utm_content');
+
+                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
@@ -1214,6 +1230,21 @@
                 }
             );
         });
+
+        this.script = (src) =>
+            new Promise( (res, rej) => {
+                $.getScript(
+                    src,
+                    function() { res() },
+                    function() { rej() }
+                );
+            });
+
+        this.style = (src) =>
+            new Promise( (res, rej) => {
+                $('head').append($(`<link rel="stylesheet" type="text/css" href="${src}" crossorigin="anonymous" />`));
+                res();
+            });
 
         this._v = version;
 

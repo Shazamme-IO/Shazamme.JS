@@ -1246,6 +1246,47 @@
                 res();
             });
 
+        this.toast = (m, t = 2500) => new Promise( (res, rej) => {
+            let wait = sender._toastWait || 0;
+
+            clearTimeout(sender._hideToast);
+
+            let el = $('.shazamme-toast');
+
+            if (el.length === 0) {
+                el = $(`
+                    <div class="shazamme-toast" style="opacity: 0;">
+                        <span class="text"></span>
+                        <button class="close"><span class="text">X</span></button>
+                    </div>
+                `).appendTo($('body'));
+            }
+
+            setTimeout( () => {
+                el
+                    .css({
+                        opacity: 100,
+                    })
+                    .find('.text')
+                    .first()
+                    .text(m);
+
+                sender._hideToast = setTimeout( () => {
+                    el.css({
+                        opacity: 0,
+                    });
+
+                    setTimeout( () => el.remove(), 2000 );
+                }, t);
+
+                sender._toastWait -= t;
+
+                res();
+            }, wait);
+
+            sender._toastWait = wait + t;
+        });
+
         this._v = version;
 
         this.v = (v) => window[`shazamme-${v}`];

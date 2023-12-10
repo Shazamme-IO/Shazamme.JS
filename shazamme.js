@@ -313,7 +313,7 @@
                     ...config,
                 }
 
-                _s[`${n}-${config.widgetId}`] = c;
+                _s[`${n}-${config.widgetId}-${config.elementId}`] = c;
                 this._sid = this._sid || c.siteId;
 
                 if (!this._site) {
@@ -382,7 +382,7 @@
                     }),
 
                     bag: (k, v) => {
-                        return sender.bag(`${n}:${config.widgetId}:${k}`, v);
+                        return sender.bag(`${n}:${config.widgetId}-${config.elementId}:${k}`, v);
                     },
 
                     config: (c) =>
@@ -468,6 +468,9 @@
 
                         return o;
                     },
+
+                    id: config.widgetId,
+                    eid: config.elementId,
                 }
 
                 sender._pageConfig(config.siteId, config.page).then( () => {
@@ -587,7 +590,7 @@
             });
 
         this.sub = (n, on) => {
-            if (typeof(on) === 'function') {
+            if (n?.length > 0 && typeof(on) === 'function') {
                 let e = _ps[n] || {}
                 let h = this.uuid();
 

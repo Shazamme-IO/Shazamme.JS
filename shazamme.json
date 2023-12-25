@@ -39,16 +39,14 @@
 				},
 				{
 					"fieldLabel": "Resume",
-					"fieldName": "cvFileContent",
-					"fileName": "cvFileName",
+					"fieldName": "resume",
 					"fieldRequired": true,
 					"fieldType": "file",
 					"showOnAuth": true
 				},
 				{
 					"fieldLabel": "Cover Letter",
-					"fieldName": "coverLetterContent",
-					"fileName": "coverLetterFileName",
+					"fieldName": "coverLetter",
 					"fieldType": "file",
 					"showOnAuth": true
 				},

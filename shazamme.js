@@ -148,7 +148,7 @@
             sender._sid = sender._sid || sid;
 
             Promise.all([
-                $.get(`${host.resources}/shazamme.json`)
+                $.get(`${host.resources}/site/shazamme.json`)
                     .then( j => {
                         _c = j?.config || {};
                         _tr = j?.trace || {};
@@ -603,11 +603,13 @@
         }
 
         this.pub = (n, m) => {
-            let e = _ps[n];
+            if (n?.length > 0) {
+                let e = _ps[n];
 
-            if (e) {
-                for (let h in e) {
-                    e[h](m, h);
+                if (e) {
+                    for (let h in e) {
+                        e[h](m, h);
+                    }
                 }
             }
         }
@@ -771,6 +773,8 @@
 
             });
 
+            const validateEmail = (email) => firebase.auth().fetchSignInMethodsForEmail(email);
+
             const signOut = (end = true) => {
                 if (end) {
                     sender.endSession();
@@ -829,6 +833,7 @@
                 reset,
                 verifyReset,
                 confirmReset,
+                validateEmail,
                 delete: _delete,
             }
         }
@@ -1340,8 +1345,8 @@
 
             Promise
                 .allSettled([
-                    $.get(`${host.resources}/${sid}/shazamme.json`),
-                    $.get(`${host.resources}/${sid}/${p}/shazamme.json`),
+                    $.get(`${host.resources}/site/${sid}/shazamme.json`),
+                    $.get(`${host.resources}/site/${sid}/${p}/shazamme.json`),
                 ])
                 .then( r => {
                     let c = {};

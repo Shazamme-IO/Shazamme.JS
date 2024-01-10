@@ -620,47 +620,53 @@
             }
         }
 
-        this.site = () => new Promise( (resolve, reject) => {
-            if (this._site) {
-                resolve(this._site);
-                return;
+        this.site = () => {
+            if (!this._sp) {
+                this._sp = new Promise( (resolve, reject) => {
+                    if (this._site) {
+                        resolve(this._site);
+                        return;
+                    }
+
+                    $.ajax({
+                        url: ActionUrl,
+                        type: 'POST',
+                        data: JSON.stringify({
+                            action: 'Get Site ID',
+                            dudaSiteID: this._sid,
+                        })
+                    }).then( res => {
+                        let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+
+                        if (s?.isLive) {
+                            sender._site = s;
+                            sender._site.documentUri = 'https://shazamme.io/candidate-document/';
+                            resolve(sender._site);
+
+                            return;
+                        }
+
+                        $.ajax({
+                            url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions',
+                            type: 'POST',
+                            data: JSON.stringify({
+                                action: 'Get Site ID',
+                                dudaSiteID: this._sid,
+                            })
+                        }).then( res => {
+                            sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                            sender._site.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
+                            sender._site.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
+                            sender._site.documentUri = 'https://staging.shazamme.salsa.hosting/candidate-document/';
+
+                            resolve(sender._site);
+                        });
+                    });
+                });
             }
 
-            $.ajax({
-                url: ActionUrl,
-                type: 'POST',
-                data: JSON.stringify({
-                    action: 'Get Site ID',
-                    dudaSiteID: this._sid,
-                })
-            }).then( res => {
-                let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
-
-                if (s?.isLive) {
-                    sender._site = s;
-                    sender._site.documentUri = 'https://shazamme.io/candidate-document/';
-                    resolve(sender._site);
-
-                    return;
-                }
-
-                $.ajax({
-                    url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions',
-                    type: 'POST',
-                    data: JSON.stringify({
-                        action: 'Get Site ID',
-                        dudaSiteID: this._sid,
-                    })
-                }).then( res => {
-                    sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
-                    sender._site.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
-                    sender._site.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
-                    sender._site.documentUri = 'https://staging.shazamme.salsa.hosting/candidate-document/';
-
-                    resolve(sender._site);
-                });
-            });
-        });
+            return this._sp;
+        }
 
         this.fetch = (c) => new Promise( (resolve, reject) => {
             if (c.useCache && c._cache) {
@@ -781,7 +787,7 @@
                     sender.pub(message.auth);
                 }
 
-                firebase.auth().signOut().then();
+                return firebase.auth().signOut();
             }
 
             const _delete = (secret) => {
@@ -1188,7 +1194,7 @@
 
             if (sender._tracer) {
                 resolve(o);
-            } else {
+            } else if (!window.Cookiebot || Cookiebot?.consent?.statistics) {
                 $.getScript("https://cloudfront.loggly.com/js/loggly.tracker-2.2.4.min.js",
                     function() {
                         sender._tracer = _LTracker;
@@ -1206,6 +1212,8 @@
                         reject();
                     }
                 );
+            } else {
+                reject();
             }
         });
 

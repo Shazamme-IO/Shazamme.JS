@@ -142,35 +142,34 @@
                 }
             });
 
-            let _rp = undefined;
-            window[`shazamme-${version}-ready`] = _ready = new Promise( r => _rp = r );
-
             sender._sid = sender._sid || sid;
 
-            Promise.all([
-                $.get(`${host.resources}/site/shazamme.json`)
-                    .then( j => {
-                        _c = j?.config || {};
-                        _tr = j?.trace || {};
-                        _r = j?.run || {};
+            window[`shazamme-${version}-ready`] = _ready = new Promise( r => {
+                Promise.all([
+                    $.get(`${host.resources}/site/shazamme.json`)
+                        .then( j => {
+                            _c = j?.config || {};
+                            _tr = j?.trace || {};
+                            _r = j?.run || {};
 
-                        return Promise.resolve();
-                    },
-                    () => {
-                        return Promise.resolve();
-                    }),
+                            return Promise.resolve();
+                        },
+                        () => {
+                            return Promise.resolve();
+                        }),
 
-                sender.site(),
+                    sender.site(),
 
-                sender._pageConfig(sid, p),
+                    sender._pageConfig(sid, p),
 
-                handleOAuth(),
-            ])
-            .then( () => {
-                _rp();
-            })
-            .catch( (ex) => {
-                console.error(ex);
+                    handleOAuth(),
+                ])
+                .then( () => {
+                    r();
+                })
+                .catch( (ex) => {
+                    console.error(ex);
+                });
             });
 
             addEventListener('CookiebotOnConsentReady', function() {

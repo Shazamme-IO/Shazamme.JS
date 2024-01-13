@@ -39,16 +39,16 @@
 				},
 				{
 					"fieldLabel": "Resume",
-					"fieldName": "resume",
+					"fieldName": "file",
 					"fieldRequired": true,
-					"fieldType": "file",
-					"showOnAuth": true
+					"showOnAuth": true,
+					"fileIsResume": true
 				},
 				{
 					"fieldLabel": "Cover Letter",
-					"fieldName": "coverLetter",
-					"fieldType": "file",
-					"showOnAuth": true
+					"fieldName": "file",
+					"showOnAuth": true,
+					"fileIsCover": true
 				},
 				{
 					"fieldName": "separator",

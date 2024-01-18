@@ -2,7 +2,7 @@
     const version = '1.0.1';
 
     const host = {
-        resources: 'https://d1x4k0bobyopcw.cloudfront.net',
+        resources: 'https://sdk.shazamme.io',
     }
 
     const message = {
@@ -146,7 +146,7 @@
 
             window[`shazamme-${version}-ready`] = _ready = new Promise( r => {
                 Promise.all([
-                    $.get(`${host.resources}/site/shazamme.json`)
+                    $.get(`${host.resources}/js/site/shazamme.json`)
                         .then( j => {
                             _c = j?.config || {};
                             _tr = j?.trace || {};
@@ -1217,9 +1217,9 @@
         });
 
         this.dragula = () => new Promise( (resolve, reject) => {
-            $.getScript("https://d1x4k0bobyopcw.cloudfront.net/dragula/dragula.min.js",
+            $.getScript(`${host.resources}/dragula/dragula.min.js`,
                 function() {
-                    $('head').append($('<link rel="stylesheet" type="text/css" href="https://d1x4k0bobyopcw.cloudfront.net/dragula/dragula.min.css" crossorigin="anonymous" />'));
+                    $('head').append($(`<link rel="stylesheet" type="text/css" href="${host.resources}/dragula/dragula.min.css" crossorigin="anonymous" />`));
                     resolve(dragula);
                 },
 
@@ -1230,9 +1230,9 @@
         });
 
         this.colorChooser = () => new Promise( (resolve, reject) => {
-            $.getScript("https://d1x4k0bobyopcw.cloudfront.net/choose-color/choose-color.js",
+            $.getScript(`${host.resources}/choose-color/choose-color.js`,
                 function() {
-                    $('head').append($('<link rel="stylesheet" type="text/css" href="https://d1x4k0bobyopcw.cloudfront.net/choose-color/choose-color.css" crossorigin="anonymous" />'))
+                    $('head').append($(`<link rel="stylesheet" type="text/css" href="${host.resources}/choose-color/choose-color.css" crossorigin="anonymous" />`));
                     resolve();
                 },
 
@@ -1352,8 +1352,8 @@
 
             Promise
                 .allSettled([
-                    $.get(`${host.resources}/site/${sid}/shazamme.json`),
-                    $.get(`${host.resources}/site/${sid}/${p}/shazamme.json`),
+                    $.get(`${host.resources}/js/site/${sid}/shazamme.json`),
+                    $.get(`${host.resources}/js/site/${sid}/${p}/shazamme.json`),
                 ])
                 .then( r => {
                     let c = {};

@@ -1,15 +1,23 @@
 # Shazamme.JS
 
 #### Change History
-| ver       | date     | change
-|:----------|:---------|:--------------------------
-| **0.1**   | Mar 2023 | * Test release
-| **0.1.1** | Apr 2023 | * Added pub / sub support.
-|           |          | * Added state bag support
-|           |          | * Added 3rd party tracing / logging
-|           |          | * Added authentication / session wrappers
-| **1.0**   | Jun 2023 | * First release
-
+| ver       | date     	| change
+|:----------|:----------|:--------------------------
+| **0.1**   | Mar 2023 	| * Test release
+| **0.1.1** | Apr 2023 	| * Added pub / sub support.
+|           |          	| * Added state bag support
+|           |          	| * Added 3rd party tracing / logging
+|           |          	| * Added authentication / session wrappers
+| **1.0**   | Jun 2023 	| * First release
+| **1.0.1**	| Jan 2024 	| * Added password reset and signout interfaces to the Firebase wrapper.
+|			|			| * Added wrappers for Google API
+|			|			| * Added support for Open ID OAuth using LinkedIn
+|			|			| * Added a wrapper for Able support
+|			|			| * Added a system for plugins and script loading
+|			|			| * Added web user / client support for authenticated users
+|			|			| * Implemented CookieBot support for disabling trackers
+|			|			| * Added message toasting support
+|			|			| * General bug fixes
 *maintained by* [Justin McCullough](https://github.com/cptcretin)
 
 ## About
@@ -22,7 +30,7 @@ Access to Shazamme's discreet web services are also provided through a set of st
 ## Quick Start
 To get started developing a custom Shazamme widget, register the widget with the library using the following syntax. The use of a `main()` method is recommended, as this will keep the initialization of the widget grouped in a method when it is known that Shazamme.JS is safely available. Once the widget is registered, any of the methods supported by Shazamme.JS can be called as normal.
 
-When calling `shazamme.ready()`, passing the ID of the current site and the name of the current page will pre-fetch any custom configuration applied to the page level. (See [Default Widget Configurations] for details).
+When calling `shazamme.ready()`, passing the ID of the current site and the name of the current page will pre-fetch any custom configuration applied to the page level. (See [Shazamme.JSON] for details).
 
 ```js
 $.getScript(
@@ -35,7 +43,7 @@ $.getScript(
 );
 ```
 
-When calling `shazamme.register()`, be sure to pass an identifiable name for the custom widget being developed. This will help in identifying the widget down the line when testing, debugging, or tracing. See the section [Testing and Tracing] for details. Also, include the `data` object provided by Duda. This will assist in the initialization of the custom widget and its associated page when calling the various methods of Shazamme.JS.
+When calling `shazamme.register()`, be sure to pass an identifiable name for the custom widget being developed. This will help in identifying the widget down the line when testing, debugging, or tracing. See the section [Logging and Tracing](#logging-and-tracing) for details. Also, include the `data` object provided by Duda. This will assist in the initialization of the custom widget and its associated page when calling the various methods of Shazamme.JS.
 
 When `shazamme.register()` is called, a wrapper for the custom widget is returned which includes support for:
 * Messaging (pub / sub)
@@ -297,7 +305,7 @@ w.config({
 w.config().then( c => console.log('got configurtion', c) );
 ```
 
-### Logging and Tracing
+### Logging and Tracing {#logging-and-tracing}
 
 The widget wrapper includes logging methods for writing output to the browser console. When outputting to the console using the wrapper, additional data about the widget is implicitly included, such as the widget's version and configuration.
 

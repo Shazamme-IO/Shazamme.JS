@@ -1298,6 +1298,8 @@
             sender._toastWait = wait + t;
         });
 
+        this.message = {...message};
+
         this._v = version;
 
         this.v = (v) => window[`shazamme-${v}`];

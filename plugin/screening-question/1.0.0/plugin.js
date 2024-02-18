@@ -130,7 +130,7 @@
             const validate = () => {
                 let isOk = true;
 
-                container.find('input[required], select[required]').each( (i, el) => {
+                container.find('input[required], select[required], button[required]').each( (i, el) => {
                     let field = $(el);
 
                     switch (field.attr('data-qtype')) {
@@ -165,7 +165,7 @@
                         }
 
                         case 'file': {
-                            isOk = isOk && field.get(0).files.length > 0;
+                            isOk = isOk && sender._answers[field.attr('data-qid')]?.answerFile?.length > 0;
                             break;
                         }
                     }
@@ -289,6 +289,52 @@
                         let page = parseInt($(this).attr("data-page")) || 0;
 
                         sender._showQuestions(page);
+                    });
+
+                container
+                    .find('[data-qtype=file]')
+                    .on('click', function() {
+                        let f = $(this);
+                        let field = f.attr('data-qid');
+
+                        const message = shazamme.bag('site-config')?.message;
+
+                        shazamme.pub(message?.uploadShow, {
+                            showFiles: true,
+                        });
+
+                        let uploadH = shazamme.sub(message?.uploadSubmit, upload => {
+                            shazamme.unsub(uploadH);
+                            shazamme.unsub(cancelH);
+
+                            if (upload?.length > 0) {
+                                sender._answers[field] = {
+                                    screeningQuestionID: field,
+                                    answerFile: upload[0].content,
+                                    answerFileName: upload[0].name,
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
+
+                                f
+                                    .hide()
+                                    .parents('.input-field-container').find('[data-rel=file-list]')
+                                        .empty()
+                                        .append(
+                                            _fileEl(upload[0])
+                                                .on('click', '[data-rel=action-remove]', function() {
+                                                    delete sender._answers[field];
+
+                                                    f.show();
+                                                    $(this).parents('article').remove();
+                                                })
+                                        );
+                            }
+                        });
+
+                        let cancelH = shazamme.sub(message?.uploadCancel, () => {
+                            shazamme.unsub(uploadH);
+                            shazamme.unsub(cancelH);
+                        });
                     });
 
                 if (this._pages[page]?.find( q => q.parentQuestionID )) {
@@ -501,12 +547,18 @@
                         return `
                              <div class="input-field-container">
                                 <label>
-                                <p class="sq-list-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                    <input type="file" autocomplete="nope" data-qtype="file" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
+                                    <p class="sq-list-question">
+                                        ${q.question}
+                                        ${q.isMandatory ? '*' : ''}
+                                    </p>
                                 </label>
+
+                                <button class="file" data-qtype="file" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>
+                                    <span class="text">${config?.uploadButtonText || 'Select...'}</span>
+                                </button>
+
+                                <div class="sq-file-list" data-rel="file-list"></div>
+
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -526,6 +578,14 @@
                     default: return '';
                 }
             }
+
+            this._fileEl = (f) =>
+                $(`
+                    <article class="item-file">
+                        <span class="text">${f.name || '(unknown)'}</span>
+                        <button class="action-remove" data-rel="action-remove"><span class="text">X</span></button>
+                    </article>
+                `);
 
             this._pagingElements = (page) => {
                 let out = [];

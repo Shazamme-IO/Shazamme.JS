@@ -72,13 +72,25 @@
                             let handle = c?.knockout?.find( x => x.screeningQuestionID === i.screeningQuestionID );
 
                             if (handle?.alert?.length > 0) {
-                                alert(handle.alert);
-                            }
+                                site?.alertDialog({
+                                    title: config?.screeningWarningTitle || 'Error',
+                                    message: handle.alert,
+                                    onClose: () => {
+                                        if (handle?.redirect?.length > 0) {
+                                            let link = editing ? `/site/${dudaAlias}${handle.redirect}?preview=true&insitepreview=true&dm_device=desktop` : handle.redirect;
 
-                            if (handle?.redirect?.length > 0) {
-                                let link = editing ? `/site/${dudaAlias}${handle.redirect}?preview=true&insitepreview=true&dm_device=desktop` : handle.redirect;
+                                            window.location = link;
+                                        }
+                                    }
+                                }) || ( () => {
+                                    alert(handle.alert);
 
-                                window.location = link;
+                                    if (handle?.redirect?.length > 0) {
+                                        let link = editing ? `/site/${dudaAlias}${handle.redirect}?preview=true&insitepreview=true&dm_device=desktop` : handle.redirect;
+
+                                        window.location = link;
+                                    }
+                                })();
                             }
                         })
                     });
@@ -90,7 +102,7 @@
             const validate = () => {
                 let isOk = true;
 
-                container.find('input[required], select[required]').each( (i, el) => {
+                container.find('input[required], select[required], button[required]').each( (i, el) => {
                     let field = $(el);
 
                     switch (field.attr('data-qtype')) {
@@ -125,7 +137,7 @@
                         }
 
                         case 'file': {
-                            isOk = isOk && field.get(0).files.length > 0;
+                            isOk = isOk && sender._answers[field.attr('data-qid')]?.answerFile?.length > 0;
                             break;
                         }
                     }
@@ -166,7 +178,13 @@
 
             this._showQuestions = (page, scrollIntoView=true) => {
                 if (page > this.pageNumber && !validate()) {
-                    alert("Please answer all questions");
+                    let warning = config?.warningScreeningQuestions || 'Please answer all questions';
+
+                    site?.alertDialog({
+                        title: config?.warningScreeningQuestionsTitle || 'Error',
+                        message: warning,
+                    }) || alert(warning);
+
                     return;
                 }
 
@@ -233,6 +251,53 @@
                         sender._showQuestions(page);
                     });
 
+                container
+                    .find('[data-qtype=file]')
+                    .on('click', function() {
+                        let f = $(this);
+                        let field = f.attr('data-qid');
+
+                        const message = shazamme.bag('site-config')?.message;
+
+                        shazamme.pub(message?.uploadShow, {
+                            showFiles: true,
+                        });
+
+                        let uploadH = shazamme.sub(message?.uploadSubmit, upload => {
+                            shazamme.unsub(uploadH);
+                            shazamme.unsub(cancelH);
+
+                            if (upload?.length > 0) {
+                                sender._answers[field] = {
+                                    sRQuestionID: field,
+                                    key: 'Value',
+                                    value: upload[0].content,
+                                    candidateID: candidateID,
+                                    answerFileName: upload[0].name,
+                                };
+
+                                f
+                                    .hide()
+                                    .parents('.input-field-container').find('[data-rel=file-list]')
+                                    .empty()
+                                    .append(
+                                        _fileEl(upload[0])
+                                            .on('click', '[data-rel=action-remove]', function() {
+                                                delete sender._answers[field];
+
+                                                f.show();
+                                                $(this).parents('article').remove();
+                                            })
+                                    );
+                            }
+                        });
+
+                        let cancelH = shazamme.sub(message?.uploadCancel, () => {
+                            shazamme.unsub(uploadH);
+                            shazamme.unsub(cancelH);
+                        });
+                    });
+
                 if (this._pages[page]?.find( q => q.parentQuestionID )) {
                     container
                         .find('input, select')
@@ -246,7 +311,13 @@
                     .find('[data-rel=screening-apply]')
                     .click( function() {
                         if (!validate()) {
-                            alert("Please answer all questions");
+                            let warning = config?.warningScreeningQuestions || 'Please answer all questions';
+
+                            site?.alertDialog({
+                                title: config?.warningScreeningQuestionsTitle || 'Error',
+                                message: warning,
+                            }) || alert(warning);
+
                             return;
                         }
 
@@ -442,8 +513,14 @@
                                     ${q.question}
                                     ${q.isMandatory ? '*' : ''}
                                 </p>
-                                    <input type="file" autocomplete="nope" data-qtype="file" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
                                 </label>
+
+                                <button class="file" data-qtype="file" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''}>
+                                    <span class="text">${config?.uploadButtonText || 'Select...'}</span>
+                                </button>
+
+                                <div class="sq-file-list" data-rel="file-list"></div>
+
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -461,6 +538,14 @@
 
 
             }
+
+            this._fileEl = (f) =>
+                $(`
+                    <article class="item-file">
+                        <span class="text">${f.name || '(unknown)'}</span>
+                        <button class="action-remove" data-rel="action-remove"><span class="text">X</span></button>
+                    </article>
+                `);
 
             this._pagingElements = (page) => {
                 let out = [];

@@ -24,7 +24,7 @@
                 </div>
 
                 <div class="input-field-container input-field-spacer">
-                    <label>${c?.description || 'Description'}</label>
+                    <label class="required">${c?.description || 'Description'}</label>
                     <textarea rows="5" cols="50" data-rel="field" data-field="description" data-required></textarea>
                 </div>
 
@@ -63,6 +63,7 @@
             const config = o?.config || {};
             const container = o?.container || $(`<div data-rel="container-experience" class="section-experience" />`);
             const editing = o?.editing === true;
+            const site = shazamme.bag('site-config');
             const sender = this;
 
             const submit = (cid) => {
@@ -117,9 +118,22 @@
                 });
 
                 if (!ok) {
-                    alert(config.warningValid || 'Please the complete the required fields');
-               } else if (config.min > 0 && answers.length < config.min) {
-                    alert(config.warningMin || 'Not enough experience submitted');
+                    let warning = config?.warningValid || 'Please complete the required fields';
+
+                    site?.alertDialog({
+                        title: config?.warningValidTitle || 'Please Complete Experience',
+                        message: warning,
+                    })?.appendTo(container) || alert(warning);
+
+                    return false;
+               } else if (config?.requireExperience > 0 && answers.length < config?.requireExperience) {
+                    let warning = config?.warningMin || 'Not enough experience submitted';
+
+                    site?.alertDialog({
+                        title: config?.warningMinTitle || 'Need Additional Experience',
+                        message: warning,
+                    })?.appendTo(container) || alert(warning);
+
                     return false;
                 }
 
@@ -130,6 +144,11 @@
                 let el = $(experienceEl(config));
 
                 container.append(el);
+
+                el.find('[data-rel=field][data-field=current]').on('change', function() {
+                    el.find('[data-rel=field][data-field=endDate]').attr('data-required', $(this).is(':checked') ? null : '')
+                });
+
                 el.find('[data-rel=button-remove]').on('click', function() {
                     el.remove();
                 });
@@ -152,7 +171,12 @@
                         });
 
                     if (!isValid) {
-                        alert('Please the complete the required fields');
+                        let warning = config?.warningValid || 'Please complete the required fields';
+
+                        site?.alertDialog({
+                            title: config?.warningValidTitle || 'Please Complete Experience',
+                            message: warning,
+                        })?.appendTo(container) || alert(warning);
                    } else {
                         el
                             .addClass('saved')

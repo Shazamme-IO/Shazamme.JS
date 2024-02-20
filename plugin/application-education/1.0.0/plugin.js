@@ -23,7 +23,7 @@
             </div>
 
             <div class="input-field-container input-field-spacer">
-                <label>${c?.description || 'Description'}</label>
+                <label class="required">${c?.description || 'Description'}</label>
                 <textarea rows="5" cols="50" data-rel="field" data-field="description" data-required></textarea>
             </div>
 
@@ -62,6 +62,7 @@
             const config = o?.config || {};
             const container = o?.container || $(`<div data-rel="container-education" class="section-education" />`);
             const editing = o?.editing === true;
+            const site = shazamme.bag('site-config');
             const sender = this;
 
             const submit = (cid) => {
@@ -116,9 +117,22 @@
                 });
 
                 if (!ok) {
-                    alert(config.warningValid || 'Please the complete the required fields');
-               } else if (config.min > 0 && answers.length < config.min) {
-                    alert(config.warningMin || 'Not enough education submitted');
+                    let warning = config?.warningValid || 'Please complete the required fields';
+
+                    site?.alertDialog({
+                        title: config?.warningValidTitle || 'Please Complete Education',
+                        message: warning,
+                    })?.appendTo(container) || alert(warning);
+
+                    return false;
+               } else if (config?.requireEducation > 0 && answers.length < config?.requireEducation) {
+                    let warning = config?.warningMin || 'Not enough education submitted';
+
+                    site?.alertDialog({
+                        title: config?.warningMinTitle || 'Need Additional Education',
+                        message: warning,
+                    })?.appendTo(container) || alert(warning);
+
                     return false;
                 }
 
@@ -151,7 +165,12 @@
                         });
 
                     if (!isValid) {
-                        alert('Please the complete the required fields');
+                        let warning = config?.warningValid || 'Please the complete the required fields'
+
+                        site?.alertDialog({
+                            title: config?.warningValidTitle || 'Please Complete Education',
+                            message: warning,
+                        })?.appendTo(container) || alert(warning);
                     } else {
                         el.addClass('saved');
                     }
@@ -181,7 +200,7 @@
                 }).append(
                     $('<span />', {
                         'class': 'text',
-                    }).text(config.AddEducationButton || 'Add Education')
+                    }).text(config?.addButton || 'Add Education')
                 ).on('click', function() {
                     addEducationEl();
                 })

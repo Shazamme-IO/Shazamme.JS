@@ -24,14 +24,14 @@
 					"fieldLabel": "Email",
 					"fieldName": "eMail",
 					"fieldRequired": true,
-					"fieldType": "text",
+					"fieldType": "email",
 					"fullRow": true
 				},
 				{
 					"fieldLabel": "Phone Number",
 					"fieldName": "phone",
 					"fieldRequired": true,
-					"fieldType": "text",
+					"fieldType": "tel",
 					"fullRow": true
 				},
 				{
@@ -59,7 +59,18 @@
 					"fieldName": "",
 					"fieldRequired": true,
 					"fieldType": "checkbox",
-					"showOnAuth": true
+					"showOnAuth": true,
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "View privacy policy and terms",
+					"fieldName": "button",
+					"buttonLink": {
+						"href": "/privacy-policy",
+						"target": "_blank"
+					},
+					"showOnAuth": true,
+					"fullRow": true
 				}
 			]
 		},

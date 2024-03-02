@@ -7,50 +7,55 @@
 
     const educationEl = (c) => `
         <div class="section-education" data-rel="education">
-            <div class="input-field-container">
-                <label class="required">${c?.institution || 'Institution'}</label>
-                <input data-rel="field" data-field="institution" data-required />
+            <div class="field">
+                <label class="text required">${c?.institution || 'Institution'}</label>
+                <input type="text" data-rel="field" data-field="institution" data-required />
             </div>
 
-            <div class="input-field-container">
-                <label>${c?.major || 'Major'}</label>
-                <input data-rel="field" data-field="major" />
+            <div class="field">
+                <label class="text">${c?.major || 'Major'}</label>
+                <input type="text" data-rel="field" data-field="major" />
             </div>
 
-            <div class="input-field-container input-field-spacer">
-                <label>${c?.degree || 'Degree'}</label>
-                <input data-rel="field" data-field="degree" />
+            <div class="field">
+                <label class="text">${c?.degree || 'Degree'}</label>
+                <input type="text" data-rel="field" data-field="degree" />
             </div>
 
-            <div class="input-field-container input-field-spacer">
-                <label class="required">${c?.description || 'Description'}</label>
+            <div class="field row">
+                <label class="text required">${c?.description || 'Description'}</label>
                 <textarea rows="5" cols="50" data-rel="field" data-field="description" data-required></textarea>
             </div>
 
-            <div class="input-field-container">
-                <label class="required">${c?.startDate || 'Start Date'}</label>
+            <div class="field">
+                <label class="text required">${c?.startDate || 'Start Date'}</label>
                 <input type="date" data-rel="field" data-field="startDate" data-required />
             </div>
 
-            <div class="input-field-container">
-                <label class="required">${c?.endDate || 'End Date'}</label>
+            <div class="field">
+                <label class="text required">${c?.endDate || 'End Date'}</label>
                 <input type="date" data-rel="field" data-field="endDate" data-required />
             </div>
 
-            <div class="radioBtnContainer">
-                <label>${c?.current || 'Is Current?'}</label>
+            <div class="field inline row">
                 <input type="checkbox" data-rel="field" data-field="current" data-required />
+                <label class="text">${c?.current || 'Is Current?'}</label>
             </div>
 
-            <div class="button-set add">
-                <button data-rel="button-action" data-action="cancel">${c?.cancelButton || 'Cancel'}</button>
-                <button data-rel="button-action" data-action="save">${c?.saveButton || 'Save'}</button>
+            <div class="field button">
+                <button data-rel="button-action" data-action="save"><span class="text">${c?.saveButton || 'Save'}</span></button>
             </div>
 
+            <div class="field button">
+                <button data-rel="button-action" data-action="cancel"><span class="text">${c?.cancelButton || 'Cancel'}</span></button>
+            </div>
 
-            <div class="button-set edit">
-                <button data-rel="button-action" data-action="delete">${c?.deleteButton || 'Delete'}</button>
-                <button data-rel="button-action" data-action="edit">${c?.editButton || 'Edit'}</button>
+            <div class="field button">
+                <button data-rel="button-action" data-action="edit"><span class="text">${c?.editButton || 'Edit'}</span></button>
+            </div>
+
+            <div class="field button">
+                <button data-rel="button-action" data-action="delete"><span class="text">${c?.deleteButton || 'Delete'}</span></button>
             </div>
         </div>
     `;
@@ -60,7 +65,7 @@
 
         education: (w, o) => {
             const config = o?.config || {};
-            const container = o?.container || $(`<div data-rel="container-education" class="section-education" />`);
+            const container = o?.container || $(`<div data-rel="container-education" class="container-education" />`);
             const editing = o?.editing === true;
             const site = shazamme.bag('site-config');
             const sender = this;
@@ -143,6 +148,11 @@
                 const el = $(educationEl(config));
 
                 container.append(el);
+
+                el.find('[data-rel=field][data-field=current]').on('change', function() {
+                    el.find('[data-rel=field][data-field=endDate]').attr('data-required', $(this).is(':checked') ? null : '')
+                });
+
                 el.find('[data-rel=button-remove]').on('click', function() {
                     el.remove();
                 });

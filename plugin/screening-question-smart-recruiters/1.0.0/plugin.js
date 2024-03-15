@@ -33,15 +33,26 @@
             }
 
             const answers = () => {
-                let data = [];
+                let d = [];
 
                 this._recordAnswers();
 
                 for (let i in this._answers) {
-                    data.push(this._answers[i]);
+                    let a = {...this._answers[i]};
+
+                    if (typeof(a.answerUUID) === 'object' && a.answerUUID.length > 0) {
+                        d.push(...a.answerUUID.map( x => new Object({
+                            sRQuestionID: a.screeningQuestionID,
+                            key: 'Value',
+                            value: x,
+                            candidateID: candidateID,
+                        })));
+                    } else {
+                        d.push(a);
+                    }
                 }
 
-                return data;
+                return d;
             }
 
             const loadAnswers = () => {
@@ -606,32 +617,47 @@
 
                     switch (field.attr('data-qtype')) {
                         case 'text': {
-                            sender._answers[field.attr('data-qid')] = {
-                                sRQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.val(),
-                                candidateID: candidateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    sRQuestionID: field.attr('data-qid'),
+                                    key: 'Value',
+                                    value: field.val(),
+                                    candidateID: candidateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
                         case 'number': {
-                            sender._answers[field.attr('data-qid')] = {
-                                sRQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: parseInt(field.val()),
-                                candidateID: candidateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    sRQuestionID: field.attr('data-qid'),
+                                    key: 'Value',
+                                    value: parseInt(field.val()),
+                                    candidateID: candidateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
                         case 'date': {
-                            sender._answers[field.attr('data-qid')] = {
-                                sRQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.val(),
-                                candidateID: candidateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    sRQuestionID: field.attr('data-qid'),
+                                    key: 'Value',
+                                    value: field.val(),
+                                    candidateID: candidateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
@@ -646,22 +672,41 @@
                         }
 
                         case 'list': {
-                            sender._answers[field.attr('data-qid')] = {
-                                sRQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.val(),
-                                candidateID: candidateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    sRQuestionID: field.attr('data-qid'),
+                                    key: 'Value',
+                                    value: field.val(),
+                                    candidateID: candidateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
                         case 'check-list': {
-                            sender._answers[`${field.attr('data-qid')}:${field.attr('data-value')}`] = {
-                                sRQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.attr('data-value'),
-                                candidateID: candidateID,
-                            };
+                            let id = field.attr('data-qid');
+                            let a = sender._answers[id]?.answerUUID || [];
+
+                            if (field.is(':checked')) {
+                                a.indexOf(field.attr('data-value')) < 0 && a.push(field.attr('data-value'));
+                            } else if (a.indexOf(field.attr('data-value')) >= 0) {
+                                a.splice(a.indexOf(field.attr('data-value')), 1);
+                            }
+
+                            if (a.length === 0) {
+                                delete sender._answers[field.attr('data-qid')];
+                            } else {
+                                sender._answers[id] = {
+                                    sRQuestionID: field.attr('data-qid'),
+                                    key: 'Value',
+                                    value: a,
+                                    candidateID: candidateID,
+                                };
+                            }
+
                             break;
                         }
 
@@ -676,23 +721,6 @@
                             }
                             break;
                         }
-
-                        case 'file': {
-                            let file = field.get(0).files.length > 0 && field.get(0).files[0];
-
-                            if (file) {
-                                sender._readFile(file).then( val => {
-                                    sender._answers[field.attr('data-qid')] = {
-                                        sRQuestionID: field.attr('data-qid'),
-                                        key: 'Value',
-                                        value: val,
-                                        candidateID: candidateID,
-                                        answerFileName: file.name,
-                                    };
-                                });
-                            }
-                            break;
-                        }
                     }
                 });
             }
@@ -703,6 +731,11 @@
                     let ans = sender._answers[qid];
 
                     qid = qid.split(':')[0];
+
+                    if (container.find(`input[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
+                        delete sender._answers[qid];
+                        continue;
+                    }
 
                     let field = container.find(`input[data-qid=${qid}]`);
 

@@ -628,29 +628,44 @@
 
                     switch (field.attr('data-qtype')) {
                         case 'text': {
-                            sender._answers[field.attr('data-qid')] = {
-                                screeningQuestionID: field.attr('data-qid'),
-                                answerText: field.val(),
-                                screeningTemplateID: sender._screeningTemplateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    screeningQuestionID: field.attr('data-qid'),
+                                    answerText: field.val(),
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
                         case 'number': {
-                            sender._answers[field.attr('data-qid')] = {
-                                screeningQuestionID: field.attr('data-qid'),
-                                answerNum: parseInt(field.val()),
-                                screeningTemplateID: sender._screeningTemplateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    screeningQuestionID: field.attr('data-qid'),
+                                    answerNum: parseInt(field.val()),
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
                         case 'date': {
-                            sender._answers[field.attr('data-qid')] = {
-                                screeningQuestionID: field.attr('data-qid'),
-                                answerDate: field.val(),
-                                screeningTemplateID: sender._screeningTemplateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    screeningQuestionID: field.attr('data-qid'),
+                                    answerDate: field.val(),
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
@@ -664,11 +679,16 @@
                         }
 
                         case 'list': {
-                            sender._answers[field.attr('data-qid')] = {
-                                screeningQuestionID: field.attr('data-qid'),
-                                answerUUID: field.val(),
-                                screeningTemplateID: sender._screeningTemplateID,
-                            };
+                            if (field.val()) {
+                                sender._answers[field.attr('data-qid')] = {
+                                    screeningQuestionID: field.attr('data-qid'),
+                                    answerUUID: field.val(),
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
                             break;
                         }
 
@@ -683,14 +703,14 @@
                             }
 
                             if (a.length === 0) {
-                                a = undefined;
+                                delete sender._answers[field.attr('data-qid')];
+                            } else {
+                                sender._answers[id] = {
+                                    screeningQuestionID: field.attr('data-qid'),
+                                    answerUUID: a,
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
                             }
-
-                            sender._answers[id] = {
-                                screeningQuestionID: field.attr('data-qid'),
-                                answerUUID: a,
-                                screeningTemplateID: sender._screeningTemplateID,
-                            };
 
                             break;
                         }
@@ -705,22 +725,6 @@
                             }
                             break;
                         }
-
-                        case 'file': {
-                            let file = field.get(0).files.length > 0 && field.get(0).files[0];
-
-                            if (file) {
-                                sender._readFile(file).then( val => {
-                                    sender._answers[field.attr('data-qid')] = {
-                                        screeningQuestionID: field.attr('data-qid'),
-                                        answerFile: val,
-                                        answerFileName: file.name,
-                                        screeningTemplateID: sender._screeningTemplateID,
-                                    };
-                                });
-                            }
-                            break;
-                        }
                     }
                 });
             }
@@ -731,6 +735,11 @@
                     let ans = sender._answers[qid];
 
                     qid = qid.split(':')[0];
+
+                    if (container.find(`input[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
+                        delete sender._answers[qid];
+                        continue;
+                    }
 
                     if (ans.answerText || ans.answerNum || ans.answerDate) {
                         container.find(`input[data-qid=${qid}]`).val(ans.answerText || ans.answerNum || ans.answerDate);

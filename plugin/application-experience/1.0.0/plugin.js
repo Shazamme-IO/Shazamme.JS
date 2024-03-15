@@ -2,7 +2,7 @@
     const Version = '1.0.0';
 
     shazamme
-        .style('https://d1x4k0bobyopcw.cloudfront.net/plugin/application-experience/1.0.0/plugin.css')
+        .style('https://sdk.shazamme.io/js/plugin/application-experience/1.0.0/plugin.min.css')
         .then();
 
     const experienceEl = (c) => {
@@ -43,19 +43,19 @@
                     <label class="text">${c?.current || 'Current Position?'}</label>
                 </div>
 
-                <div class="field button">
+                <div class="field button action">
                     <button data-rel="button-action" data-action="save"><span class="text">${c?.saveButton || 'Save'}</span></button>
                 </div>
 
-                <div class="field button">
+                <div class="field button action">
                     <button data-rel="button-action" data-action="cancel"><span class="text">${c?.cancelButton || 'Cancel'}</span></button>
                 </div>
 
-                <div class="field button">
+                <div class="field button action saved">
                     <button data-rel="button-action" data-action="edit"><span class="text">${c?.editButton || 'Edit'}</span></button>
                 </div>
 
-                <div class="field button">
+                <div class="field button action saved">
                     <button data-rel="button-action" data-action="delete"><span class="text">${c?.deleteButton || 'Delete'}</span></button>
                 </div>
             </div>
@@ -103,7 +103,7 @@
             }
 
             const isValid = () => {
-                let ok = false;
+                let ok = true;
 
                 const answers = container.find('[data-rel=experience]');
 
@@ -132,7 +132,7 @@
                     })?.appendTo(container) || alert(warning);
 
                     return false;
-               } else if (config?.requireExperience > 0 && answers.length < config?.requireExperience) {
+               } else if (config?.min > 0 && answers.length < config?.min) {
                     let warning = config?.warningMin || 'Not enough experience submitted';
 
                     site?.alertDialog({
@@ -143,7 +143,7 @@
                     return false;
                 }
 
-               return !ok;
+               return ok;
             }
 
             const addExperienceEl = () => {
@@ -211,18 +211,15 @@
                 version: Version,
             });
 
-            container.append(
-                $('<button />', {
-                    'data-rel': 'button-add-experience',
-                    'class': 'button-add button-add-experience'
-                }).append(
-                    $('<span />', {
-                        'class': 'text',
-                    }).text(config.addButton || 'Add Experience')
-                ).on('click', function() {
-                    addExperienceEl();
-                })
-            );
+            container.append($(`
+                <div class="field button">
+                    <button "data-rel"="button-add-experience" "class"="button-add button-add-experience">
+                        <span class="text">${config?.addButton || 'Add Experience'}</span>
+                    </button>
+                </div>
+            `).on('click', 'button', function() {
+                addExperienceEl();
+            }));
 
             return shazamme.user().then( u => {
                 if (u?.candidate?.candidateID) {
@@ -239,10 +236,22 @@
 
                                         if (field.is('[type=checkbox]') && exp[i] === true) {
                                             field.attr('checked', 'true');
+                                        } else if (field.is('[type=date]')) {
+                                            let d = new Date(exp[i]);
+
+                                            if (d) {
+                                                field.val(d.toJSON().substr(0, 10));
+                                            }
                                         } else {
                                             field.val(exp[i]);
                                         }
                                     }
+
+                                    el
+                                        .addClass('saved')
+                                        .find('input, textarea')
+                                        .attr('readonly', 'readonly');
+
                                 });
                             }
                         });

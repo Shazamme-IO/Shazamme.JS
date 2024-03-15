@@ -10,16 +10,20 @@
     text-decoration: none;
 }
 
-.section-education .button-set.edit {
+.section-education .button.action {
+    display: inherit;
+}
+
+.section-education .button.action.saved {
     display: none;
 }
 
-.section-education.saved .button-set.add {
+.section-education.saved .button.action {
     display: none;
 }
 
-.section-education.saved .button-set.edit {
-    display: inline;
+.section-education.saved .button.action.saved {
+    display: inherit;
 }
 
 .section-education.saved .input-field-container input, 

@@ -10,16 +10,20 @@
     text-decoration: none;
 }
 
-.section-experience .button-set.edit {
+.section-experience .button.action {
+    display: inherit;
+}
+
+.section-experience .button.action.saved {
     display: none;
 }
 
-.section-experience.saved .button-set.add {
+.section-experience.saved .button.action {
     display: none;
 }
 
-.section-experience.saved .button-set.edit {
-    display: inline;
+.section-experience.saved .button.action.saved {
+    display: inherit;
 }
 
 .section-experience.saved .input-field-container input, 

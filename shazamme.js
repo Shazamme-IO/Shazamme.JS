@@ -49,7 +49,7 @@
 
                                 shazamme.submit({
                                     action: 'Get Seek',
-                                    siteID: s.siteID,
+                                    dudaSiteID: s.dudaSiteID,
                                     redirectUri: `${uri.origin}${uri.pathname}`,
                                     seekAuthorizationCode: oAuthToken,
                                     applicationFormUrl: encodeURIComponent(`${uri.href}`),
@@ -107,7 +107,7 @@
                             sender.site().then( s =>
                                 shazamme.submit({
                                     action: s?.linkedinOpenID ? 'Get Linkedin OpenID' : 'Get Linkedin',
-                                    siteID: s?.siteID,
+                                    dudaSiteID: s?.dudaSiteID,
                                     linkedIncode: oAuthToken,
                                     redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
                                 })
@@ -628,7 +628,7 @@
                     }
 
                     $.ajax({
-                        url: ActionUrl,
+                        url: RegionalUrl,
                         type: 'POST',
                         data: JSON.stringify({
                             action: 'Get Site ID',
@@ -646,7 +646,7 @@
                         }
 
                         $.ajax({
-                            url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions',
+                            url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions',
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Site ID',
@@ -1130,6 +1130,41 @@
 
                     default: break;
                 }
+            });
+        }
+
+        this.quickRegister = (email) => {
+            if (email?.length === 0) {
+                return Promise.reject();
+            }
+
+            return sender.site().then( s =>
+                Promise.all([
+                    Promise.resolve(s),
+                    sender.submit({
+                        "action": "Get Candidate",
+                        "eMail": email,
+                        "siteID": s.siteID,
+                    }),
+                ])
+            ).then( r => {
+                let u = r[1]?.response?.items?.at(0);
+
+                if (u) {
+                    return Promise.resolve(u);
+                }
+
+                return sender.firebase().validateEmail(email)
+                    .then( () => sender.submit({
+                        action: 'Register Candidate',
+                        eMail: email,
+                        firstName: ' ',
+                        isActive: true,
+                        isValidated: false,
+                        isSubscribed: false,
+                        dudaSiteID: r[0].dudaSiteID,
+                    }))
+                    .then( r => r?.response?.item )
             });
         }
 

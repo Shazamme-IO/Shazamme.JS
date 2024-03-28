@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style('https://sdk.shazamme.io/js/plugin/screening-question/1.0.0/plugin.css')
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css`)
         .then();
 
     shazamme.plugin = {
@@ -51,7 +51,10 @@
                     }
                 }
 
-                return d;
+                return {
+                    screeningTemplateID: this._screeningTemplateID,
+                    values: d,
+                };
             }
 
             const loadAnswers = (id) =>
@@ -75,7 +78,7 @@
                     });
 
             const knockout = () => {
-                let ko = answers()
+                let ko = answers().values
                     .map( a =>
                         sender._ko.find( i =>
                             i.screeningQuestionID === a.screeningQuestionID
@@ -194,8 +197,10 @@
                                 .then( r => Promise.resolve(r[1]?.filter( i => i.data.screeningTemplateID === r[0] )) )
 
                     fetchTemplate().then( t  => {
+                        sender._screeningTemplateID = t.at(0)?.data.screeningTemplateID;
+
                         t.forEach(q => {
-                            pIndex = Math.floor((parseInt(q.data.sortOrder) || 0) / 100);
+                            let pIndex = Math.floor((parseInt(q.data.sortOrder) || 0) / 100);
 
                             sender._pages[pIndex] = sender._pages[pIndex] || [];
                             sender._pages[pIndex].push(q.data);

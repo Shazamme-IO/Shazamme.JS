@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style('https://d1x4k0bobyopcw.cloudfront.net/plugin/screening-question-job-adder/1.0.0/plugin.css')
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question-job-adder/${Version}/plugin.css`)
         .then();
 
     shazamme.plugin = {
@@ -33,17 +33,15 @@
             }
 
             const answers = () => {
-                let data = [];
+                let d = [];
 
                 this._recordAnswers();
 
                 for (let i in this._answers) {
-                    data.push(this._answers[i]);
+                    d.push(this._answers[i]);
                 }
 
-                //return data;
-                w.log('Job Adder Answers', data);
-                return [];
+                return d;
             }
 
             const loadAnswers = (id) =>
@@ -266,103 +264,8 @@
                             </div>
                         `;
 
-                    case 'TEXTAREA':
-                        return `
-                             <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                    <textarea class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''} ></textarea>
-                                </p>
-                                </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                    case 'NUMBER':
-                        return `
-                             <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                    <input type="number" autocomplete="nope" data-qtype="number" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
-                                </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                    case 'DATE':
-                        return `
-                             <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                 </p>
-                                    <input type="date" autocomplete="nope" data-qtype="date" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
-
-                                </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                    case 'CHECKBOX':
-                        return `
-                             <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                    <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''}  />
-
-                                </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                    case 'SINGLE_SELECT': {
-                        let opts = q.options.map( o => `<option value="${o.value}">${o.label || o.option}</option>`);
-
-                        return `
-                             <div class="input-field-container">
-                                <p class="sq-list-question">${q.question}</p>
-                                <select data-qtype="list" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''}>${opts.join('')}</select>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                             </div>
-                        `;
-                    }
-
                     case 'List': {
-                        let opts = q.options.map( o => `<label class="sq-question-option"><input type="${q.isMultiSelect ? 'checkbox' : 'radio'}" name="${w.jAScreeningQuestionID}" data-qtype="${q.isMultiSelect ? 'check-list' : 'radio'}" data-qid="${q.jAScreeningQuestionID}" data-value="${o.value}" ${q.isMandatory ? 'required' : ''} />${o.value}</label>`);
+                        let opts = q.options.map( o => `<label class="sq-question-option"><input type="${q.isMultiSelect ? 'checkbox' : 'radio'}" name="${w.jAScreeningQuestionID}" data-qtype="${q.isMultiSelect ? 'check-list' : 'radio'}" data-qid="${q.jAScreeningQuestionID}" data-value="${o.jAScreeningQuestionAnswerID}" ${q.isMandatory ? 'required' : ''} />${o.value}</label>`);
 
                         return `
                              <div class="input-field-container">
@@ -380,64 +283,6 @@
                              </div>
                         `;
                     }
-
-                    case 'RADIO': {
-                        let opts = q.options.map( o => `<label class="sq-question-option"><input type="radio" data-qtype="radio" name="${q.jAScreeningQuestionID}" data-qid="${q.jAScreeningQuestionID}" value="${o.value}" ${q.isMandatory ? 'required' : ''} />${o.label || o.option}</label>`);
-
-                        return `
-                             <div class="input-field-container">
-                                <p class="sq-radio-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                                <div class="sq-opt-list">${opts.join('')}</div>
-                             </div>
-                        `;
-                    }
-
-                    case 'INFORMATION': {
-                        return `
-                             <div class="input-field-container">
-                                <p class="sq-radio-question">
-                                    ${q.question}
-                                </p>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                             </div>
-                        `;
-                    }
-
-                    case 'FILE':
-                        return `
-                             <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
-                                    ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                    <input type="file" autocomplete="nope" data-qtype="file" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
-                                </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                    case 'HEADER':
-                        return `<div class='screening-question-heading'><h3>${q.question}</h3</div>`;
 
                     default: return '';
                 }
@@ -505,90 +350,38 @@
                     switch (field.attr('data-qtype')) {
                         case 'text': {
                             sender._answers[field.attr('data-qid')] = {
+                                jobAppJaSqID: shazamme.uuid(),
                                 jAScreeningQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.val(),
-                                candidateID: candidateID,
+                                answer: field.val(),
                             };
                             break;
                         }
 
-                        case 'number': {
-                            sender._answers[field.attr('data-qid')] = {
-                                jAScreeningQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: parseInt(field.val()),
-                                candidateID: candidateID,
-                            };
-                            break;
-                        }
-
-                        case 'date': {
-                            sender._answers[field.attr('data-qid')] = {
-                                jAScreeningQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.val(),
-                                candidateID: candidateID,
-                            };
-                            break;
-                        }
-
-                        case 'bool': {
-                            sender._answers[field.attr('data-qid')] = {
-                                jAScreeningQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.is(":checked"),
-                                candidateID: candidateID,
-                            };
-                            break;
-                        }
-
-                        case 'list': {
-                            sender._answers[field.attr('data-qid')] = {
-                                jAScreeningQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.val(),
-                                candidateID: candidateID,
-                            };
-                            break;
-                        }
-
+                        case 'radio':
                         case 'check-list': {
-                            sender._answers[`${field.attr('data-qid')}:${field.attr('data-value')}`] = {
-                                jAScreeningQuestionID: field.attr('data-qid'),
-                                key: 'Value',
-                                value: field.attr('data-value'),
-                                candidateID: candidateID,
-                            };
-                            break;
-                        }
+                            let id = field.attr('data-qid');
+                            let a = sender._answers[id]?.listAnswers || [];
 
-                        case 'radio': {
-                            if (field.is(":checked")) {
-                                sender._answers[field.attr('data-qid')] = {
+                            if (field.is(':checked')) {
+                                a.indexOf(field.attr('data-value')) < 0 && a.push({jAScreeningQuestionAnswerID: field.attr('data-value')});
+                            } else {
+                                let del = a.find( x => x.jAScreeningQuestionAnswerID === field.attr('data-value') );
+
+                                if (del) {
+                                    a.splice(a.indexOf(del), 1);
+                                }
+                            }
+
+                            if (a.length === 0) {
+                                delete sender._answers[field.attr('data-qid')];
+                            } else {
+                                sender._answers[id] = {
+                                    jobAppJaSqID: shazamme.uuid(),
                                     jAScreeningQuestionID: field.attr('data-qid'),
-                                    key: 'Value',
-                                    value: field.attr('value'),
-                                    candidateID: candidateID,
+                                    listAnswers: a,
                                 };
                             }
-                            break;
-                        }
 
-                        case 'file': {
-                            let file = field.get(0).files.length > 0 && field.get(0).files[0];
-
-                            if (file) {
-                                sender._readFile(file).then( val => {
-                                    sender._answers[field.attr('data-qid')] = {
-                                        jAScreeningQuestionID: field.attr('data-qid'),
-                                        key: 'Value',
-                                        value: val,
-                                        candidateID: candidateID,
-                                        answerFileName: file.name,
-                                    };
-                                });
-                            }
                             break;
                         }
                     }
@@ -608,7 +401,7 @@
                         case 'text':
                         case 'number':
                         case 'date': {
-                            field.val(ans.value);
+                            field.val(ans.answer);
                             break;
                         }
 
@@ -620,16 +413,13 @@
                         case 'list':
                         case 'check-list':
                         case 'radio': {
-                            container.find(`input[data-qid=${qid}][value=${ans.value}]`).attr('checked', true);
-                            container.find(`select[data-qid=${qid}]`).val(ans.value);
+                            ans.listAnswers?.forEach( i => {
+                                container.find(`input[data-qid=${qid}][value=${i.jAScreeningQuestionAnswerID}]`).attr('checked', true);
+                                container.find(`select[data-qid=${qid}]`).val(i.jAScreeningQuestionAnswerID);
+                            });
+
                             break;
                         }
-
-                        case 'file': {
-                            field.val(this._fileBlob(ans.value));
-                            break;
-                        }
-
                     }
                 }
             }

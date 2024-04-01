@@ -265,7 +265,7 @@
                         `;
 
                     case 'List': {
-                        let opts = q.options.map( o => `<label class="sq-question-option"><input type="${q.isMultiSelect ? 'checkbox' : 'radio'}" name="${w.jAScreeningQuestionID}" data-qtype="${q.isMultiSelect ? 'check-list' : 'radio'}" data-qid="${q.jAScreeningQuestionID}" data-value="${o.jAScreeningQuestionAnswerID}" ${q.isMandatory ? 'required' : ''} />${o.value}</label>`);
+                        let opts = q.options.map( o => `<label class="sq-question-option"><input type="${q.isMultiSelect ? 'checkbox' : 'radio'}" name="${q.jAScreeningQuestionID}" data-qtype="${q.isMultiSelect ? 'check-list' : 'radio'}" data-qid="${q.jAScreeningQuestionID}" data-value="${o.jAScreeningQuestionAnswerID}" ${q.isMandatory ? 'required' : ''} />${o.value}</label>`);
 
                         return `
                              <div class="input-field-container">

@@ -3,12 +3,6 @@
 		"job-apply": {
 			"fieldList": [
 				{
-					"fieldLabel": "Salutation",
-					"fieldName": "salutation",
-					"fieldType": "dropdown",
-					"fullRow": true
-				},
-				{
 					"fieldLabel": "First Name",
 					"fieldName": "firstName",
 					"fieldRequired": true,
@@ -24,15 +18,13 @@
 					"fieldLabel": "Email",
 					"fieldName": "eMail",
 					"fieldRequired": true,
-					"fieldType": "email",
-					"fullRow": true
+					"fieldType": "email"
 				},
 				{
 					"fieldLabel": "Phone Number",
 					"fieldName": "phone",
 					"fieldRequired": true,
-					"fieldType": "tel",
-					"fullRow": true
+					"fieldType": "tel"
 				},
 				{
 					"fieldName": "separator"
@@ -98,6 +90,15 @@
 					"fieldName": "button",
 					"fullRow": true,
 					"buttonLink": "/privacy-policy"
+				},
+				{
+					"fieldName": "separator"
+				},
+				{
+					"fieldLabel": "Don’t have an account? Register",
+					"fieldName": "button",
+					"fullRow": true,
+					"buttonLink": "/register"
 				}
 			]
 		}

@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style('https://d1x4k0bobyopcw.cloudfront.net/plugin/screening-question-smart-recruiters/1.0.0/plugin.css')
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question-smart-recruiters/${Version}/plugin.css`)
         .then();
 
     shazamme.plugin = {
@@ -167,20 +167,16 @@
                 return new Promise( resolve => {
                     (
                         (editing && !jid && Promise.resolve(JSON.parse('{"items":[{"sRQuestionsID": "ece81c14-cc13-4c11-8329-00b551164e19","question": "Do you agree for these checks to be conducted?","questionType": "RADIO","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 51},{"sRQuestionsID": "150c4af8-14ec-4016-9645-06135c05c579","question": "Do you identify yourself as a person with a disability?","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 60},{"sRQuestionsID": "a5fce0ca-18a2-4ecc-8f35-071fb3da825f","question": "Do you identify as Aboriginal or Torres Strait Islander?","questionType": "RADIO","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 70},{"sRQuestionsID": "ec700817-628b-4877-8a48-1b99907e11b5","question": "Languages","questionType": "INPUT_TEXT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 39},{"sRQuestionsID": "ec700817-628b-4877-8a48-1b99907e11b5","question": "Languages","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 39},{"sRQuestionsID": "6281ddaa-b86f-4567-a91f-2eb6b1feda1b","question": "Do you hold a current Drivers Licence in the country in which this role is located?","questionType": "RADIO","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 10},{"sRQuestionsID": "68a478fb-7a7c-4c98-bb0f-407b86187a12","question": "I hereby certify that the above is true and correct and will be held by Global Express in the strictest confidence in accordance with the Privacy Act.\\n\\nI accept that if any of the information given by me in this application is in any way false or incorrect, any offer of employment may be withdrawn or my employment with Global Express may be terminated summarily or I may be dismissed.\\n\\nBy continuing, you agree that you have read our Privacy Policy, and consent to Global Express collecting, using and disclosing your personal information as set our in that policy.\\n\\nFor the avoidance of doubt, you consent to the collection, use, process and/or disclosure of your personal data by Global Express for the purposes of assessing and evaluating your suitability for employment in any current or prospective position within the organisation and verifying your identity and the accuracy of your personal details and other information provided in this questionnaire.","questionType": "CHECKBOX","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 55},{"sRQuestionsID": "7c70a592-75b2-4b95-831f-43e90363d930","question": "Gender","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 74},{"sRQuestionsID": "4ea81f20-901c-4cf1-8c03-66b2d2c3a4a1","question": "What is your notice period?","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 33},{"sRQuestionsID": "bd2c4f99-b4f2-494d-ad82-7a60a9af0ddb","question": "What is your expected annual base salary?","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 22},{"sRQuestionsID": "76421ccd-d76c-4340-a507-7bd0badb7fc7","question": "Have you worked for Global Express before?","questionType": "RADIO","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 14},{"sRQuestionsID": "770c4f57-af8d-4f98-8674-7c4fc4ffb3e2","question": "Do you require any adjustments to be made in order to participate in the recruitment process, or to perform the necessary requirements of the role?","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 65},{"sRQuestionsID": "e7878629-26cc-489a-a471-828c37f17b51","question": "Are you currently employed at Global Express either Permanently or via a third party supplier (Contractor, Consultant)?","questionType": "RADIO","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 18},{"sRQuestionsID": "9eee4a24-2713-4bb4-8e39-9eb086c49315","question": "Please attach relevant documents to support your application such as working rights visa and identification","questionType": "INFORMATION","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 8},{"sRQuestionsID": "0769000e-d49c-4305-a54d-c5d98cf6732d","question": "At Global Express Safety is at the forefront of everything we do. The provision of background checks (including police probity checks) and a medical assessment is a minimum standard requirment for obtaining or continuing direct employment or engagement with Global Express.","questionType": "INFORMATION","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 49},{"sRQuestionsID": "c9c1a48f-8199-4eb6-b438-e84697a7dcaf","question": "DIVERSITY AND INCLUSION\\nIdentification in any of these groups is optional and will be shared with the recruitment team or hiring manager where appropriate.\\n\\nThe information is used for the purposes of supporting increased accessibility of employment opportunities for candidates with a disability and for internal statistical reporting on diversity.\\n\\nThis reporting will not identify you or any other individual.","questionType": "INFORMATION","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 58},{"sRQuestionsID": "65f8fcb7-9348-422f-9cad-f33c2b3d4793","question": "Are you currently authorised to work in the country in which this role is located?","questionType": "SINGLE_SELECT","jobID": "af0513c3-c16e-4577-b5fc-0f76a1bbfc07","siteID": "854282ae-eebe-491b-a8fc-4ef502d60eb5","sortOrder": 2}],"message": null,"validations":[],"status": 200}')))
-                        || shazamme.submit({
-                            action: "Get Screening Questions - SR",
-                            jobID: jid,
-                        })
+                        || shazamme.fetch(collection.questions)
                     )
-                    .then( res => {
-                        if (!res || !res.items || res.items.length == 0) {
-                            resolve();
-                            return;
-                        }
+                    .then( r => Promise.resolve(r?.filter( i => (editing && !jid) || i.data.jobID === jid )) )
+                    .then( r => {
+                        if (r?.length > 0) {
+                            if (!sender._pages[0]) sender._pages[0] = [];
 
-                        if (!sender._pages[0]) sender._pages[0] = [];
-                        sender._pages[0] = sender._pages[0].concat(res.items);
-                        sender._ko = res.items.filter( q => q.knockOutDate || q.knockOutList || q.knockOutText || q.knockOutNumber || (q.knockOutBoolean !== null) );
+                            sender._pages[0] = sender._pages[0].concat(r.map( i => i.data ));
+                            sender._ko = r.filter( q => q.knockOutDate || q.knockOutList || q.knockOutText || q.knockOutNumber || (q.knockOutBoolean !== null) );
+                        }
 
                         resolve();
                     });
@@ -209,7 +205,7 @@
                     .filter( q => !q.parentQuestionID || sender._answers[q.parentQuestionID] )
                     .map( q => sender._questionEl({
                         ...q,
-                        options: q.options?.filter( o => !q.parentQuestionID || sender._answers[q.parentQuestionID].answerUUID?.indexOf(o.parentOptionID) >= 0) || [],
+                        options: q.srscreeningquestionvalues?.filter( o => !q.parentQuestionID || sender._answers[q.parentQuestionID].answerUUID?.indexOf(o.parentOptionID) >= 0) || [],
                     }));
 
                 container
@@ -349,13 +345,10 @@
                     case 'INPUT_TEXT':
                         return `
                              <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                    <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
-                                </p>
                                 </label>
+                                <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -368,13 +361,10 @@
                     case 'TEXTAREA':
                         return `
                              <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                    <textarea class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} ></textarea>
-                                </p>
                                 </label>
+                                <textarea class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} ></textarea>
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -387,12 +377,10 @@
                     case 'NUMBER':
                         return `
                              <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                    <input type="number" autocomplete="nope" data-qtype="number" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
+                                </label>
+                                <input type="number" autocomplete="nope" data-qtype="number" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
                                 </label>
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -406,14 +394,10 @@
                     case 'DATE':
                         return `
                              <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                 </p>
-                                    <input type="date" autocomplete="nope" data-qtype="date" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
-
                                 </label>
+                                <input type="date" autocomplete="nope" data-qtype="date" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''} />
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -426,14 +410,10 @@
                     case 'CHECKBOX':
                         return `
                              <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
-                                    <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''}  />
-
                                 </label>
+                                <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''}  />
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -448,7 +428,7 @@
 
                         return `
                              <div class="input-field-container">
-                                <p class="sq-list-question">${q.question}</p>
+                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 <select data-qtype="list" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''}>${opts.join('')}</select>
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -465,10 +445,9 @@
 
                         return `
                              <div class="input-field-container">
-                                <p class="sq-checklist-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
+                                </label>
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -485,10 +464,9 @@
 
                         return `
                              <div class="input-field-container">
-                                <p class="sq-radio-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
+                                </label>
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -503,9 +481,9 @@
                     case 'INFORMATION': {
                         return `
                              <div class="input-field-container">
-                                <p class="sq-radio-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                </p>
+                                </label>
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
                                     <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
@@ -519,11 +497,8 @@
                     case 'FILE':
                         return `
                              <div class="input-field-container">
-                                <label>
-                                <p class="sq-list-question">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
-                                    ${q.isMandatory ? '*' : ''}
-                                </p>
                                 </label>
 
                                 <button class="file" data-qtype="file" data-qid="${q.sRQuestionsID}" ${q.isMandatory ? 'required' : ''}>

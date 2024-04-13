@@ -4,7 +4,10 @@
 }
 
 .input-field-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     margin-bottom: 5px;
+    min-height: 100px;
 }
 
 .screeningQuestionContainer {
@@ -27,7 +30,7 @@
     font-size: 18px;
     text-align: left;
     margin-bottom: 5px;
-    margin-top: 5px;    
+    margin-top: 5px;
 }
 
 .sq-radio-question {
@@ -40,13 +43,15 @@
 .sq-help-text {
     font-size: 12px;
     text-align: left;
+    grid-column-start: 1;
+    grid-column-end: 3;
 }
 
 .sq-help-text .text-main {
     display: -webkit-box;
     -webkit-line-clamp: var(--shaz-help-text-lines);
     -webkit-box-orient: vertical;
-    overflow: hidden;    
+    overflow: hidden;
 }
 
 .sq-help-text .button-show-more {
@@ -56,7 +61,6 @@
 .sq-help-text.collapsible {
     padding-bottom: 25px;
     position: relative;
-    
 }
 
 .sq-help-text.collapsible .button-show-more {
@@ -78,7 +82,7 @@
 
 .screening-pages-container {
     margin: 40px 0px 20px 0px;
-
+    text-align: var(--shaz-text-align);
 }
 
 .screening-pages-container .button-page-index {
@@ -111,16 +115,20 @@
     margin: 3px 5px;
 }
 
-.screening-pages-container .button-page-nav, .dmInner .button-page-nav {
-    display: inline-block;
-    padding: 20px;
-    margin: 10px 5px;
-    font-size: 1.25em;
-    border-radius: 3px;
-    background: #333;
-    color: white;
-    text-transform: uppercase;
-    text-decoration: none;
+.screening-pages-container .button-page-nav {
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 220px;
+    height: 56px;
+    border: 0px solid #333;
+    border-radius: 0px;
+    padding: 10px 15px;
+    background-color: #333;
+    font-family: inherit;
+    color: #fff;
 }
 
 .screening-pages-container .button-page-nav.back {
@@ -136,13 +144,13 @@
     height: 18px;
     width: 18px;
     border-radius: 3px;
-}    
+}
 
 .screening-pages-container .sq-pages-index .button-page-index.disabled {
     background: #eee;
     color: #eee;
     cursor: default;
-}    
+}
 
 .dialog-knockout {
     display: none;
@@ -198,4 +206,11 @@
 .dialog-knockout .buttons button.dismiss {
     color: black;
     background: #a6a6a6;
+}
+
+@media screen and (max-width: 720px) {
+    .input-field-container .sq-question-option, .input-field-container .text {
+        grid-column-start: 1;
+        grid-column-end: 3;
+    }
 }

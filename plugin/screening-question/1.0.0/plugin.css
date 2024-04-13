@@ -4,7 +4,10 @@
 }
 
 .input-field-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     margin-bottom: 0px;
+    min-height: 100px;
 }
 
 .sq-list-question {
@@ -48,6 +51,8 @@
 .sq-help-text {
     font-size: 12px;
     text-align: left;
+    grid-column-start: 1;
+    grid-column-end: 3;
 }
 
 .sq-help-text .text-main {
@@ -210,4 +215,11 @@
 .dialog-knockout .buttons button.dismiss {
     color: black;
     background: #a6a6a6;
+}
+
+@media screen and (max-width: 720px) {
+    .input-field-container .sq-question-option, .input-field-container .text {
+        grid-column-start: 1;
+        grid-column-end: 3;
+    }
 }

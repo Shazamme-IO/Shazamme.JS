@@ -124,11 +124,9 @@
             this._fetchQuestions = () => {
 
                 return new Promise( resolve => {
-                    (
-                        (editing && !jid && Promise.resolve(JSON.parse('[{"page_item_url": "question-67176e27-ab69-4ec3-8b18-f7f68162a5a4","data": {"jAScreeningQuestionID": "67176e27-ab69-4ec3-8b18-f7f68162a5a4","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","question": "How old are you?","isMandatory": true,"isMultiSelect": false,"answerType": "Text","index": 2,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc"}},{"page_item_url": "question-bfc545b9-31f7-49e3-9834-7e6d750212a9","data": {"jAScreeningQuestionID": "bfc545b9-31f7-49e3-9834-7e6d750212a9","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","question": "What is your gender","isMandatory": true,"isMultiSelect": false,"answerType": "List","index": 3,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","jascreeningquestionanswer": [{"jAScreeningQuestionAnswerID": "9085af4d-966a-480d-a259-14f749a06d38","sort": 0,"value": "Male","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","index": 3},{"jAScreeningQuestionAnswerID": "71473964-16ad-44fe-9bf6-99e37f34de26","sort": 1,"value": "Female","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","index": 3}]}},{"page_item_url": "question-c0807f54-765e-4ad9-b19d-783a881d2c4f","data": {"jAScreeningQuestionID": "c0807f54-765e-4ad9-b19d-783a881d2c4f","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","question": "Where do you live?","isMandatory": true,"isMultiSelect": false,"answerType": "Text","index": 4,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc"}},{"page_item_url": "question-98545d42-f6bb-4144-a448-a3a875a7ed33","data": {"jAScreeningQuestionID": "98545d42-f6bb-4144-a448-a3a875a7ed33","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","question": "Select any of the following","isMandatory": true,"isMultiSelect": true,"answerType": "List","index": 5,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","jascreeningquestionanswer": [{"jAScreeningQuestionAnswerID": "fe943c67-bee2-4de3-b26a-681a0357a742","sort": 1,"value": "Two","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","index": 5},{"jAScreeningQuestionAnswerID": "d2420fd9-e18d-4666-8d33-c0acd70be66b","sort": 2,"value": "Three","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","index": 5},{"jAScreeningQuestionAnswerID": "a1c01923-9d11-463a-8090-f4206045d36f","sort": 0,"value": "One","jobID": "ec5731fe-7e97-44df-8c14-e2b9585338cb","index": 5}]}}]')))
+                    (editing && !jid && Promise.resolve(JSON.parse('{"pages": 1,"items":[{"jAScreeningQuestionID": "b81b532d-38d4-4eae-8c8b-425c9820ea7a","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","question": "How old are you?","isMandatory": true,"isMultiSelect": false,"answerType": "Text","index": 2,"jascreeningquestionanswer": null},{"jAScreeningQuestionID": "5b609ea6-54a5-4926-9706-970b92a23bef","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","question": "What is your gender","isMandatory": true,"isMultiSelect": false,"answerType": "List","index": 3,"jascreeningquestionanswer":[{"jAScreeningQuestionAnswerID": "98dc8df8-0473-4833-9d92-91a7b928e7f6","sort": 0,"value": "Male","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","index": 3},{"jAScreeningQuestionAnswerID": "b143ad1a-31d0-464f-92c4-39a07c9c4bac","sort": 1,"value": "Female","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","index": 3}]},{"jAScreeningQuestionID": "761e252e-cfa2-4ca6-82b5-95f33e36379c","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","question": "Where do you live?","isMandatory": true,"isMultiSelect": false,"answerType": "Text","index": 4,"jascreeningquestionanswer": null},{"jAScreeningQuestionID": "70b15595-ebf0-49c5-a867-5758239c977e","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","question": "Select any of the following","isMandatory": true,"isMultiSelect": true,"answerType": "List","index": 5,"jascreeningquestionanswer":[{"jAScreeningQuestionAnswerID": "398ded85-a711-40dd-bd32-21378c76cf18","sort": 0,"value": "One","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","index": 5},{"jAScreeningQuestionAnswerID": "6359e9ad-ec68-476d-90a0-5717541c3ad3","sort": 1,"value": "Two","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","index": 5},{"jAScreeningQuestionAnswerID": "6113d191-e77f-4ff6-a40d-40be5eb1a48b","sort": 2,"value": "Three","jobID": "3ba79e50-215e-456e-8fad-e7c8d68088d7","index": 5}]}]}')))
                         || shazamme.fetch(collection.questions)
-                    )
-                    .then( r => Promise.resolve(r?.filter( i => (editing && !jid) || i.data.jobID === jid )) )
+                    .then( r => Promise.resolve(r?.filter( i => i.data.jobID === jid )) )
                     .then( r => {
                         if (r?.length > 0) {
                             if (!sender._pages[0]) sender._pages[0] = [];
@@ -246,12 +244,14 @@
                                 <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
                                 </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
+                                ${q.helpText?.length > 0 ?
+                                    `<div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
+                                        <p class="text-main">${q.helpText || ''}</p>
+                                        <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
+                                            <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
+                                        </div>
+                                    </div>`
+                                : ''}
                                 <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.jAScreeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                             </div>
                         `;
@@ -264,12 +264,14 @@
                                 <label class="text ${q.isMandatory ? 'required' : ''}">
                                     ${q.question}
                                 </label>
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
+                                ${q.helpText?.length > 0 ?
+                                    `<div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
+                                        <p class="text-main">${q.helpText || ''}</p>
+                                        <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
+                                            <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
+                                        </div>
+                                    </div>`
+                                : ''}
                                 ${opts.join('')}
                              </div>
                         `;

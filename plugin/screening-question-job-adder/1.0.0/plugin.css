@@ -6,7 +6,7 @@
 .input-field-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    margin-bottom: 5px;
+    margin-bottom: 20px;
     min-height: 100px;
 }
 
@@ -17,6 +17,11 @@
 
 .screeningQuestionContainer.pre .apply {
     display: none;
+}
+
+.input-field-container .text {
+    grid-column-start: 1;
+    grid-column-end: 3;
 }
 
 .sq-list-question {
@@ -30,7 +35,7 @@
     font-size: 18px;
     text-align: left;
     margin-bottom: 5px;
-    margin-top: 5px;    
+    margin-top: 5px;
 }
 
 .sq-radio-question {
@@ -51,7 +56,7 @@
     display: -webkit-box;
     -webkit-line-clamp: var(--shaz-help-text-lines);
     -webkit-box-orient: vertical;
-    overflow: hidden;    
+    overflow: hidden;
 }
 
 .sq-help-text .button-show-more {
@@ -61,7 +66,7 @@
 .sq-help-text.collapsible {
     padding-bottom: 25px;
     position: relative;
-    
+
 }
 
 .sq-help-text.collapsible .button-show-more {
@@ -145,13 +150,13 @@
     height: 18px;
     width: 18px;
     border-radius: 3px;
-}    
+}
 
 .screening-pages-container .sq-pages-index .button-page-index.disabled {
     background: #eee;
     color: #eee;
     cursor: default;
-}    
+}
 
 .dialog-knockout {
     display: none;

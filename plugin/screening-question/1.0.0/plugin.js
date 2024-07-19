@@ -483,6 +483,7 @@
                         `;
                     }
 
+                    case 'Multiselect List':
                     case 'Multiselect Checkbox': {
                         let opts = q.options.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`);
 
@@ -875,16 +876,23 @@
                     dialog.find('[data-rel=enable]').on('click', toggleEnable);
 
                     dialog.find('[data-rel=button-submit]').on('click', function() {
-                        let knockout = [];
+                        let knockout = c?.knockout || [];
 
-                        dialog.find('[data-rel=dialog-content] article [data-rel=enable]:checked').each( (_, i) => {
+                        dialog.find('[data-rel=dialog-content] article [data-rel=enable]').each( (_, i) => {
                             let el = $(i).parents('article');
+                            let s = knockout.find( i => i.screeningQuestionID === el.attr('data-id') );
 
-                            knockout.push({
-                                screeningQuestionID: el.attr('data-id'),
-                                alert: el.find('[data-rel=alert]').val(),
-                                redirect: el.find('[data-rel=redirect]').val(),
-                            });
+                            if (s) {
+                                knockout.splice(knockout.indexOf(s), 1);
+                            }
+
+                            if ($(i).is(':checked')) {
+                                knockout.push({
+                                    screeningQuestionID: el.attr('data-id'),
+                                    alert: el.find('[data-rel=alert]').val(),
+                                    redirect: el.find('[data-rel=redirect]').val(),
+                                });
+                            }
                         });
 
                         w.config()

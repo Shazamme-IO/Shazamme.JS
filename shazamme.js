@@ -1044,6 +1044,8 @@
             return v;
         }
 
+        this.unique = (v, i, self) => self.indexOf(v) === i;
+
         this.auth = (uid, isOAuth = false) => {
             return sender.site().then( s =>
                 sender.submit({

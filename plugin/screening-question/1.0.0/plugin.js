@@ -15,6 +15,8 @@
         screeningQuestions: (w, o) => {
             const sender = this;
             const jid = o?.jid;
+            const tid = o?.tid;
+            const cid = o?.cid;
             const config = o?.config || {};
             const collection = o?.collection || {};
             const editing = o?.editing === true;
@@ -38,13 +40,17 @@
                 this._recordAnswers();
 
                 for (let i in this._answers) {
-                    let a = {...this._answers[i]};
+                    let a = {
+                        ...this._answers[i],
+                        candidateID: cid,
+                    };
 
                     if (typeof(a.answerUUID) === 'object' && a.answerUUID.length > 0) {
                         d.push(...a.answerUUID.map( x => new Object({
                             screeningQuestionID: a.screeningQuestionID,
                             answerUUID: x,
                             screeningTemplateID: a.screeningTemplateID,
+                            candidateID: cid,
                         })));
                     } else {
                         d.push(a);
@@ -60,19 +66,21 @@
             const loadAnswers = (id) =>
                 shazamme.site()
                     .then( s => shazamme.submit({
-                            'action': 'Get Screening Answers',
-                            'siteID': s.siteID,
-                            'jobApplicationID': id,
+                            action: 'Get Screening Answers',
+                            siteID: s.siteID,
+                            jobApplicationID: id,
+                            candidateID: cid,
                     }) )
                     .then( a => {
                         let answers = [];
+                        let p = this._pages[this.pageNumber || 0] || [];
 
                         a?.response?.items?.forEach( i => {
                             answers[i.screeningQuestionID] = i;
                         });
 
                         this._answers = answers;
-                        this._restoreAnswers();
+                        this._restoreAnswers(p.map( q => q.screeningQuestionID ));
 
                         return Promise.resolve(answers);
                     });
@@ -111,7 +119,7 @@
                                             window.location = link;
                                         }
                                     }
-                                }) || ( () => {
+                                })?.appendTo(container) || ( () => {
                                     alert(handle.alert);
 
                                     if (handle?.redirect?.length > 0) {
@@ -190,7 +198,8 @@
                     const mock = `[{"page_item_url": "question-c8672398-537f-43f4-8333-dc9cb3647d8d","data":{"screeningQuestionID": "c8672398-537f-43f4-8333-dc9cb3647d8d","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Header","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Header","helpText": "help text header","sortOrder": 1,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}},{"page_item_url": "question-cc741dcf-746a-4c09-b9cd-dd920ca18848","data":{"screeningQuestionID": "cc741dcf-746a-4c09-b9cd-dd920ca18848","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Boolean Field","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Boolean","helpText": "help text boolena","sortOrder": 2,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}},{"page_item_url": "question-3a821d5a-eacb-42f0-8570-a763e2533d66","data":{"screeningQuestionID": "3a821d5a-eacb-42f0-8570-a763e2533d66","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Date field","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Date","helpText": "help text date","sortOrder": 3,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}},{"page_item_url": "question-a1a059c7-c4c7-49b2-9583-42f8d0e5dbf0","data":{"screeningQuestionID": "a1a059c7-c4c7-49b2-9583-42f8d0e5dbf0","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "File attachement","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "File","helpText": "help text file attachement","sortOrder": 4,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}},{"page_item_url": "question-ff81f8b5-526c-4a43-9a31-2c940d686284","data":{"screeningQuestionID": "ff81f8b5-526c-4a43-9a31-2c940d686284","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "List Field","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "List","helpText": "help text list","sortOrder": 5,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false,"screeningquestionoptions":[{"screeningQuestionOptionsID": "735fbde0-bfe4-4656-8726-773f0584b120","screeningQuestionID": "ff81f8b5-526c-4a43-9a31-2c940d686284","option": "option 2","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "a5986c6b-df49-45ad-a4e0-e5de5f561f0c","screeningQuestionID": "ff81f8b5-526c-4a43-9a31-2c940d686284","option": "option 1","sortOrder": null,"label": null,"parentOptionID": null}],"options":[{"screeningQuestionOptionsID": "735fbde0-bfe4-4656-8726-773f0584b120","screeningQuestionID": "ff81f8b5-526c-4a43-9a31-2c940d686284","option": "option 2","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "a5986c6b-df49-45ad-a4e0-e5de5f561f0c","screeningQuestionID": "ff81f8b5-526c-4a43-9a31-2c940d686284","option": "option 1","sortOrder": null,"label": null,"parentOptionID": null}]}},{"page_item_url": "question-82984c70-8733-41e4-a6fe-044b11478b77","data":{"screeningQuestionID": "82984c70-8733-41e4-a6fe-044b11478b77","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Multi Check Field","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": "cd4f03a7-6fc9-4413-a149-27ff8f1efccf","knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Multiselect Checkbox","helpText": "help text multi check","sortOrder": 6,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false,"screeningquestionoptions":[{"screeningQuestionOptionsID": "cd4f03a7-6fc9-4413-a149-27ff8f1efccf","screeningQuestionID": "82984c70-8733-41e4-a6fe-044b11478b77","option": "No","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "fcf3d05d-a6ba-4ef7-b99e-c0d5643bbcc2","screeningQuestionID": "82984c70-8733-41e4-a6fe-044b11478b77","option": "Yes","sortOrder": null,"label": null,"parentOptionID": null}],"options":[{"screeningQuestionOptionsID": "cd4f03a7-6fc9-4413-a149-27ff8f1efccf","screeningQuestionID": "82984c70-8733-41e4-a6fe-044b11478b77","option": "No","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "fcf3d05d-a6ba-4ef7-b99e-c0d5643bbcc2","screeningQuestionID": "82984c70-8733-41e4-a6fe-044b11478b77","option": "Yes","sortOrder": null,"label": null,"parentOptionID": null}]}},{"page_item_url": "question-d05ce73c-d8b7-4355-84c6-5abef43a6528","data":{"screeningQuestionID": "d05ce73c-d8b7-4355-84c6-5abef43a6528","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Radio Button","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Radio","helpText": "help text radio","sortOrder": 7,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false,"screeningquestionoptions":[{"screeningQuestionOptionsID": "7768eb27-7c30-4105-b451-0bfd994b5812","screeningQuestionID": "d05ce73c-d8b7-4355-84c6-5abef43a6528","option": "Yes","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "8aadcca1-3af2-4ee2-a71a-65e2d11e8579","screeningQuestionID": "d05ce73c-d8b7-4355-84c6-5abef43a6528","option": "No","sortOrder": null,"label": null,"parentOptionID": null}],"options":[{"screeningQuestionOptionsID": "7768eb27-7c30-4105-b451-0bfd994b5812","screeningQuestionID": "d05ce73c-d8b7-4355-84c6-5abef43a6528","option": "Yes","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "8aadcca1-3af2-4ee2-a71a-65e2d11e8579","screeningQuestionID": "d05ce73c-d8b7-4355-84c6-5abef43a6528","option": "No","sortOrder": null,"label": null,"parentOptionID": null}]}},{"page_item_url": "question-143386b4-2650-4b2c-b4d6-f934df354da7","data":{"screeningQuestionID": "143386b4-2650-4b2c-b4d6-f934df354da7","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Free Text Field","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Text","helpText": "help text free text","sortOrder": 8,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}},{"page_item_url": "question-977af240-8639-47ac-a244-9f1a5eacd96a","data":{"screeningQuestionID": "977af240-8639-47ac-a244-9f1a5eacd96a","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "MultiSelect List","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Multiselect List","helpText": "help text multi list","sortOrder": 9,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false,"screeningquestionoptions":[{"screeningQuestionOptionsID": "5d1f79a3-0cfd-47be-9c2b-b14b023b48ac","screeningQuestionID": "977af240-8639-47ac-a244-9f1a5eacd96a","option": "option 1","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "34e6e720-6a84-4936-82f8-b9c1c6dba2f6","screeningQuestionID": "977af240-8639-47ac-a244-9f1a5eacd96a","option": "option 2","sortOrder": null,"label": null,"parentOptionID": null}],"options":[{"screeningQuestionOptionsID": "5d1f79a3-0cfd-47be-9c2b-b14b023b48ac","screeningQuestionID": "977af240-8639-47ac-a244-9f1a5eacd96a","option": "option 1","sortOrder": null,"label": null,"parentOptionID": null},{"screeningQuestionOptionsID": "34e6e720-6a84-4936-82f8-b9c1c6dba2f6","screeningQuestionID": "977af240-8639-47ac-a244-9f1a5eacd96a","option": "option 2","sortOrder": null,"label": null,"parentOptionID": null}]}},{"page_item_url": "question-e00713b8-00aa-4b4f-b864-e328de7e4fe7","data":{"screeningQuestionID": "e00713b8-00aa-4b4f-b864-e328de7e4fe7","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Number1","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Number","helpText": "help text number","sortOrder": 10,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}},{"page_item_url": "question-b1627441-583a-4b0d-927a-c27565289887","data":{"screeningQuestionID": "b1627441-583a-4b0d-927a-c27565289887","screeningTemplateID": "1d85c583-a792-4aff-b323-f7dec578ee1a","question": "Rater??","isSubQuestion": false,"parentQuestionID": null,"knockOutDate": null,"knockOutList": null,"knockOutText": null,"knockOutNumber": null,"knockOutBoolean": null,"questionType": "Rater","helpText": "help text rater","sortOrder": 11,"isMandatory": false,"length": null,"isHelpTextCollapse": false,"siteID": "1f654fc9-5dfd-4a5c-a54f-33d494cb26cc","defaultAnswer": null,"hide": false}}]`;
 
                     let fetchTemplate = () =>
-                        editing && !jid && Promise.resolve(JSON.parse(mock))
+                        (editing && !jid && Promise.resolve(JSON.parse(mock)))
+                            || ( tid && shazamme.fetch(collection.questions) .then( c => Promise.resolve(c?.filter( i => i.data.screeningTemplateID === tid )) ) )
                             || shazamme.fetch(collection.jobs)
                                 .then( j => Promise.resolve(j?.find( i => i.data.jobID === jid )?.data?.screeningTemplateID) )
                                 .then( tid => Promise.all([tid, shazamme.fetch(collection.questions)]) )
@@ -228,7 +237,7 @@
                     site?.alertDialog({
                         title: config?.warningScreeningQuestionsTitle || 'Error',
                         message: warning,
-                    }) || alert(warning);
+                    })?.appendTo(container) || alert(warning);
 
                     return;
                 }
@@ -239,12 +248,13 @@
                     this._maxPage = page;
                 }
 
-                let el = (this._pages[page] || [])
-                    .filter( q => !q.parentQuestionID || sender._answers[q.parentQuestionID] )
-                    .map( q => sender._questionEl({
-                        ...q,
-                        options: q.screeningquestionoptions?.filter( o => !q.parentQuestionID || sender._answers[q.parentQuestionID].answerUUID?.indexOf(o.parentOptionID) >= 0),
-                    }));
+                let p = (this._pages[page] || [])
+                    .filter( q => !q.parentQuestionID || sender._answers[q.parentQuestionID] );
+
+                let el = p.map( q => sender._questionEl({
+                    ...q,
+                    options: q.options?.filter( o => !q.parentQuestionID || sender._answers[q.parentQuestionID].answerUUID?.indexOf(o.parentOptionID) >= 0),
+                }));
 
                 container
                     .empty()
@@ -360,7 +370,7 @@
                             site?.alertDialog({
                                 title: config?.warningScreeningQuestionsTitle || 'Error',
                                 message: warning,
-                            }) || alert(warning);
+                            })?.appendTo(container) || alert(warning);
 
                             return;
                         }
@@ -376,7 +386,7 @@
                     window.scrollBy({top: -200, behavior: 'smooth'});
                 }
 
-                this._restoreAnswers();
+                this._restoreAnswers(p.map( q => q.screeningQuestionID ));
                 this.pageNumber = page;
             }
 
@@ -707,20 +717,25 @@
                 });
             }
 
-            this._restoreAnswers = () => {
-
+            this._restoreAnswers = (q) => {
                 for (let qid in sender._answers) {
                     let ans = sender._answers[qid];
 
                     qid = qid.split(':')[0];
+
+                    if (q.indexOf(qid) < 0) {
+                        continue;
+                    }
 
                     if (container.find(`input[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
                         delete sender._answers[qid];
                         continue;
                     }
 
-                    if (ans.answerText || ans.answerNum || ans.answerDate) {
-                        container.find(`input[data-qid=${qid}]`).val(ans.answerText || ans.answerNum || ans.answerDate);
+                    if (ans.answerText || ans.answerNum) {
+                        container.find(`input[data-qid=${qid}]`).val(ans.answerText || ans.answerNum);
+                    } else if (ans.answerDate) {
+                        container.find(`input[data-qid=${qid}]`).val(ans.answerDate.substr(0, 10));
                     } else if (ans.answerBoolean && !ans.answerUUID) {
                         container.find(`input[data-qid=${qid}]`).attr('checked', true);
                     } else if (ans.answerUUID) {

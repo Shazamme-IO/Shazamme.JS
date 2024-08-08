@@ -353,9 +353,9 @@
                         return o;
                     },
 
-                    pub: (msg, m) => {
+                    pub: (msg, m, p) => {
                         console.log(`${n} publishing message '${msg}'`, c);
-                        sender.pub(msg, m);
+                        sender.pub(msg, m, p);
 
                         return o;
                     },
@@ -597,11 +597,15 @@
 
                 _ps[n] = e;
 
+                if (_ps[`${n}::persistent`]) {
+                    on(_ps[`${n}::persistent`]);
+                }
+
                 return h;
             }
         }
 
-        this.pub = (n, m) => {
+        this.pub = (n, m, p) => {
             if (n?.length > 0) {
                 let e = _ps[n];
 
@@ -609,6 +613,13 @@
                     for (let h in e) {
                         e[h](m, h);
                     }
+                }
+
+                if (p) {
+                    let pe = _ps[`${n}::persistent`] || [];
+
+                    pe.push(m);
+                    _ps[`${n}::persistent`] = pe;
                 }
             }
         }

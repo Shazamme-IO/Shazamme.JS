@@ -6,8 +6,9 @@
 .input-field-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    align-items: start;
     margin-bottom: 0px;
-    min-height: 100px;
+    padding: 10px 0px;
 }
 
 .sq-list-question {
@@ -46,6 +47,23 @@
 .input-field-container input[type=checkbox] {
     display: inline-block;
     vertical-align: middle;
+}
+
+.input-field-container input[type=email],
+.input-field-container input[type=number],
+.input-field-container input[type=password],
+.input-field-container input[type=tel],
+.input-field-container input[type=text],
+.input-field-container input[type=date],
+.input-field-container select,
+.input-field-container textarea {
+    font-size: 16px;
+    background-color: rgba(51,51,51,.15);
+    border: 2px solid #fff;
+    width: 100%;
+     margin: 0px;
+    height: 40px;
+    padding: 0 10px;
 }
 
 .sq-help-text {
@@ -114,7 +132,7 @@
 .sq-opt-list .sq-question-option {
     display: flex;
     margin: 8px 5px 5px 8px;
-    width: 20vw;
+    width: 100%;
     border: 1px solid #a6a6a6;
     border-radius: 3px;
     padding: 5px;

@@ -70,6 +70,7 @@
                             siteID: s.siteID,
                             jobApplicationID: id,
                             candidateID: cid,
+                            screeningTemplateID: tid,
                     }) )
                     .then( a => {
                         let answers = [];
@@ -618,6 +619,7 @@
                         case 'text': {
                             if (field.val()) {
                                 sender._answers[field.attr('data-qid')] = {
+                                    screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
                                     answerText: field.val(),
                                     screeningTemplateID: sender._screeningTemplateID,
@@ -632,6 +634,7 @@
                         case 'number': {
                             if (field.val()) {
                                 sender._answers[field.attr('data-qid')] = {
+                                    screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
                                     answerNum: parseInt(field.val()),
                                     screeningTemplateID: sender._screeningTemplateID,
@@ -646,6 +649,7 @@
                         case 'date': {
                             if (field.val()) {
                                 sender._answers[field.attr('data-qid')] = {
+                                    screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
                                     answerDate: field.val(),
                                     screeningTemplateID: sender._screeningTemplateID,
@@ -659,6 +663,7 @@
 
                         case 'bool': {
                             sender._answers[field.attr('data-qid')] = {
+                                screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                 screeningQuestionID: field.attr('data-qid'),
                                 answerBoolean: field.is(":checked") ? 1 : 0,
                                 screeningTemplateID: sender._screeningTemplateID,
@@ -669,6 +674,7 @@
                         case 'list': {
                             if (field.val()) {
                                 sender._answers[field.attr('data-qid')] = {
+                                    screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
                                     answerUUID: field.val(),
                                     screeningTemplateID: sender._screeningTemplateID,
@@ -694,6 +700,7 @@
                                 delete sender._answers[field.attr('data-qid')];
                             } else {
                                 sender._answers[id] = {
+                                    screeningAnswerID: sender._answers[id]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
                                     answerUUID: a,
                                     screeningTemplateID: sender._screeningTemplateID,
@@ -706,6 +713,7 @@
                         case 'radio': {
                             if (field.is(":checked")) {
                                 sender._answers[field.attr('data-qid')] = {
+                                    screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
                                     answerUUID: field.attr('value'),
                                     screeningTemplateID: sender._screeningTemplateID,

@@ -45,7 +45,7 @@
                         candidateID: cid,
                     };
 
-                    if (typeof(a.answerUUID) === 'object' && a.answerUUID.length > 0) {
+                    if (typeof(a.answerUUID) === 'object' && a.answerUUID?.length > 0) {
                         d.push(...a.answerUUID.map( x => new Object({
                             screeningQuestionID: a.screeningQuestionID,
                             answerUUID: x,

@@ -1057,6 +1057,34 @@
 
         this.unique = (v, i, self) => self.indexOf(v) === i;
 
+        this.geoLocate = () => new Promise( (res, rej) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition( p => res(p), () => res() )
+            } else {
+                res();
+            }
+        });
+
+        this.geoCode = (k, lat, lon) =>
+            (k?.length > 0 && lat && lon && $.ajax({
+                url: `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${k}`
+            }) || Promise.resolve())
+            .then( r => {
+                if (r?.results?.length > 0) {
+                    let address = {}
+
+                    r.results[0].address_components.forEach( c => {
+                        c.types.forEach( t => {
+                            address[t] = c.short_name;
+                        });
+                    });
+
+                    return Promise.resolve(address);
+                }
+
+                return Promise.resolve();
+            }, () => Promise.resolve() )
+
         this.auth = (uid, isOAuth = false) => {
             return sender.site().then( s =>
                 sender.submit({

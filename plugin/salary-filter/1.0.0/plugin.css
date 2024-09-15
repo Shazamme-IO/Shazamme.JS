@@ -1,0 +1,136 @@
+.control-salary-slider .label-display {
+    text-align: center;
+    padding: 0px 10px;
+}
+
+.control-salary-slider .slider {
+   position: relative;
+   display: block;
+   height: 50px;
+   display: block;
+   width: 100%;
+
+}
+
+
+.control-salary-slider .slider .section-color {
+   background-color: #F8F8F9;
+   border-radius: 50px;
+   width: 100%;
+   display: block;
+   height: 10px;
+   position: absolute;
+   z-index: 10;
+   max-width: 100%;
+}
+
+.control-salary-slider .slider .range {
+   box-sizing: border-box;
+   appearance: none;
+   width: 100%;
+   height: 10px;
+   background-color: #b2b2b2;
+   border-radius: 50px;
+   margin: 0;
+   border: 0;
+   outline: none;
+   background-size: 100% 2px;
+   pointer-events: none;
+   box-shadow: inset 0 0 4px #000000;
+  position: absolute;
+    top: 0px;
+    left: 0px;
+
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 100%; /* Specific width is required for Firefox. */
+}
+
+.control-salary-slider .slider .range::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+.control-salary-slider .slider .range::-webkit-slider-thumb {
+  height: 20px;
+   width: 20px;
+   border-radius: 28px;
+   border: solid 1px #b2b2b2;
+   background-color: #fff;
+   position: relative;
+   z-index: 50;
+   cursor: pointer;
+   appearance: none;
+   pointer-events: all;
+   box-shadow: 0 1px 4px 0.5px rgba(0, 0, 0, 0.25);
+  -webkit-appearance: none;
+}
+
+.control-salary-slider .slider .range::-moz-range-thumb {
+  height: 20px;
+   width: 20px;
+   border-radius: 28px;
+   border: solid 1px #b2b2b2;
+   background-color: #fff;
+   position: relative;
+   z-index: 50;
+   cursor: pointer;
+   appearance: none;
+   pointer-events: all;
+   box-shadow: 0 1px 4px 0.5px rgba(0, 0, 0, 0.25);
+}
+
+.control-salary-slider .slider .range::-ms-thumb {
+  height: 20px;
+   width: 20px;
+   border-radius: 28px;
+   border: solid 1px #b2b2b2;
+   background-color: #fff;
+   position: relative;
+   z-index: 10000;
+   cursor: pointer;
+   appearance: none;
+   pointer-events: all;
+   box-shadow: 0 1px 4px 0.5px rgba(0, 0, 0, 0.25);
+}
+
+.control-salary-slider .slider .range::-ms-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  border-width: 16px 0;
+  color: transparent;
+}
+
+.control-salary-slider .slider .range::-ms-fill-lower {
+  background: #2a6495;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+
+.control-salary-slider .slider .range::-ms-fill-upper {
+  background: #3071a9;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+
+.control-salary-slider .slider .range:focus {
+  outline: none;
+
+}
+
+.control-salary-slider .slider .range:focus::-ms-fill-lower {
+  background: #3071a9;
+}
+
+.control-salary-slider .slider .range:focus::-ms-fill-upper {
+  background: #367ebd;
+}

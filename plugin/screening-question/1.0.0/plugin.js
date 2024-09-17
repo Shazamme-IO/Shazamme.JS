@@ -208,6 +208,7 @@
 
                     fetchTemplate().then( t  => {
                         sender._screeningTemplateID = t.at(0)?.data.screeningTemplateID;
+                        sender._pages = [];
 
                         t.forEach(q => {
                             let pIndex = Math.floor((parseInt(q.data.sortOrder) || 0) / 100);

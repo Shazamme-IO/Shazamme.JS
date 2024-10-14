@@ -978,18 +978,14 @@
             this.trace('Warning: Use of the method currentUser() is deprecated. Please replace with the method user()');
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
+            || (localStorage._s && sender.auth(JSON.parse(decodeURIComponent(escape(atob(localStorage._s)))).email))
             || Promise.resolve();
         }
 
-        this.currentSession = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
-
         this.user = (refresh = false) =>
             (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
+            || (localStorage._s && sender.auth(JSON.parse(decodeURIComponent(escape(atob(localStorage._s)))).email))
             || Promise.resolve();
-
-        this.session = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
 
         this.bag = (k, v) => {
             if (k === undefined) {
@@ -1114,7 +1110,7 @@
                             .filter( (v, i, self) => self.indexOf(v) === i ),
                     }
 
-                    localStorage._s = btoa(JSON.stringify(sender._session));
+                    localStorage._s = btoa(unescape(encodeURIComponent(JSON.stringify(sender._session))));
 
                     return sender._userRoles(sender._session).then( r => {
                         r?.forEach( x => {

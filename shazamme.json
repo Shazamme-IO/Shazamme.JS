@@ -67,6 +67,73 @@
 			]
 		},
 
+		"candidate-form": {
+			"fieldList": [
+				{
+					"fieldLabel": "First Name",
+					"fieldName": "firstName",
+					"fieldRequired": true,
+					"fieldType": "text"
+				},
+				{
+					"fieldLabel": "Last Name",
+					"fieldName": "surname",
+					"fieldRequired": true,
+					"fieldType": "text"
+				},
+				{
+					"fieldLabel": "Email",
+					"fieldName": "eMail",
+					"fieldRequired": true,
+					"fieldType": "email"
+				},
+				{
+					"fieldLabel": "Phone Number",
+					"fieldName": "phone",
+					"fieldRequired": true,
+					"fieldType": "tel"
+				},
+				{
+					"fieldName": "separator"
+				},
+				{
+					"fieldLabel": "Resume",
+					"fieldName": "file",
+					"fieldRequired": true,
+					"showOnAuth": true,
+					"fileIsResume": true
+				},
+				{
+					"fieldLabel": "Cover Letter",
+					"fieldName": "file",
+					"showOnAuth": true,
+					"fileIsCover": true
+				},
+				{
+					"fieldName": "separator",
+					"showOnAuth": true
+				},
+				{
+					"fieldLabel": "I agree to the terms",
+					"fieldName": "",
+					"fieldRequired": true,
+					"fieldType": "checkbox",
+					"showOnAuth": true,
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "View privacy policy and terms",
+					"fieldName": "button",
+					"buttonLink": {
+						"href": "/privacy-policy",
+						"target": "_blank"
+					},
+					"showOnAuth": true,
+					"fullRow": true
+				}
+			]
+		},
+
 		"login-dialog": {
 			"fieldList": [
 				{

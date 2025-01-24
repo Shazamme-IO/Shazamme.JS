@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.1';
+    const version = '1.0.2';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -60,7 +60,7 @@
                                     postalCode: j.data.postalCode || '2601', //use Canberra as default
                                 }).then( k => {
                                     if (k.response.isExistingVinylEmail) {
-                                        sender.auth(seek.response.applicantInfo.emailAddress, true).then( s => {
+                                        sender.auth(k.response.email, k.response.firebaseUserID, true).then( s => {
                                             if (s) {
                                                 sender.pub(message.auth, s);
                                             } else {
@@ -112,24 +112,37 @@
                                     redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
                                 })
                             ).then( l => {
-                                l.status && sender.auth(l.response.email, true).then( s => {
-                                    if (s) {
-                                        sender.pub(message.auth, s);
-                                    } else {
-                                        sender._session = {
-                                            isOAuth: true,
-                                            isNew: true,
-                                            email: l.response.email,
-                                            firstName: l.response.firstName || '',
-                                            lastName: l.response.lastName || '',
-                                            provider: sender.cookie('_op'),
-                                        }
+                                if (!l.response.isNew) {
+                                    sender.auth(l.response.email, l.response.firebaseUserID, true).then( s => {
+                                        if (s) {
+                                            sender.pub(message.auth, s);
+                                        } else {
+                                            sender._session = {
+                                                isOAuth: true,
+                                                isNew: true,
+                                                email: l.response.email,
+                                                firstName: l.response.firstName || '',
+                                                lastName: l.response.lastName || '',
+                                                provider: sender.cookie('_op'),
+                                            }
 
-                                        sender.pub(message.auth, {...sender._session});
+                                            sender.pub(message.auth, {...sender._session});
+                                        }
+                                    });
+                                } else {
+                                    sender._session = {
+                                        isOAuth: true,
+                                        isNew: true,
+                                        email: l.response.email,
+                                        firstName: l.response.firstName || '',
+                                        lastName: l.response.lastName || '',
+                                        provider: sender.cookie('_op'),
                                     }
 
-                                    resolve();
-                                });
+                                    sender.pub(message.auth, {...sender._session});
+                                };
+
+                                resolve();
                             }).catch( () => {
                                 resolve();
                             });
@@ -263,7 +276,7 @@
                             let isOAuth = u.providerData[0].providerId !== "password";
                             let isNew = isOAuth && (new Date() - new Date(parseInt(u.metadata.createdAt)) <= 1 * 60 * 1000);
 
-                            sender.auth(u.email, isOAuth).then( s => {
+                            sender.auth(u.email, u.uid, isOAuth).then( s => {
                                 if (s || !isOAuth) {
                                     sender.pub(message.auth, s);
                                 } else if (isOAuth) {
@@ -977,15 +990,28 @@
         this.currentUser = (refresh = false) => {
             this.trace('Warning: Use of the method currentUser() is deprecated. Please replace with the method user()');
 
+            let u = undefined;
+
+            try {
+                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
+            } catch {}
+
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(JSON.parse(decodeURIComponent(escape(atob(localStorage._s)))).email))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
             || Promise.resolve();
         }
 
-        this.user = (refresh = false) =>
-            (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(JSON.parse(decodeURIComponent(escape(atob(localStorage._s)))).email))
+        this.user = (refresh = false) => {
+            let u = undefined;
+
+            try {
+                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
+            } catch {}
+
+            return (this._session && !refresh && Promise.resolve({...this._session}))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
             || Promise.resolve();
+        }
 
         this.bag = (k, v) => {
             if (k === undefined) {
@@ -1081,12 +1107,13 @@
                 return Promise.resolve();
             }, () => Promise.resolve() )
 
-        this.auth = (uid, isOAuth = false) => {
+        this.auth = (uname, uid, isOAuth = false) => {
             return sender.site().then( s =>
                 sender.submit({
                     action: "Verify User",
                     siteID: s.siteID,
-                    email: uid,
+                    email: uname,
+                    uid: uid,
                 }).then( r => {
                     let p = r?.response?.items[0];
 
@@ -1170,28 +1197,9 @@
             });
         }
 
-        this.quickRegister = (email) => {
-            if (email?.length === 0) {
-                return Promise.reject();
-            }
-
-            return sender.site().then( s =>
-                Promise.all([
-                    Promise.resolve(s),
-                    sender.submit({
-                        "action": "Get Candidate",
-                        "eMail": email,
-                        "siteID": s.siteID,
-                    }),
-                ])
-            ).then( r => {
-                let u = r[1]?.response?.items?.at(0);
-
-                if (u) {
-                    return Promise.resolve(u);
-                }
-
-                return sender.firebase().validateEmail(email)
+        this.quickRegister = (email) =>
+            email?.length === 0 && Promise.reject()
+                || sender.firebase().validateEmail(email)
                     .then( () => sender.submit({
                         action: 'Register Candidate',
                         eMail: email,
@@ -1202,8 +1210,7 @@
                         dudaSiteID: r[0].dudaSiteID,
                     }))
                     .then( r => r?.response?.item )
-            });
-        }
+
 
         this.endSession = () => {
             [
@@ -1475,6 +1482,7 @@
                     action: "Login Candidate",
                     siteID: s.siteID,
                     eMail: s.email,
+                    uid: s.firebaseUserID,
                 }).then( r => {
                     let c = r?.response?.items?.at(0);
 

@@ -1200,17 +1200,17 @@
         this.quickRegister = (email) =>
             email?.length === 0 && Promise.reject()
                 || sender.firebase().validateEmail(email)
-                    .then( () => sender.submit({
+                    .then( () => sender.site() )
+                    .then( s => sender.submit({
                         action: 'Register Candidate',
                         eMail: email,
                         firstName: ' ',
                         isActive: true,
                         isValidated: false,
                         isSubscribed: false,
-                        dudaSiteID: r[0].dudaSiteID,
+                        dudaSiteID: s.dudaSiteID,
                     }))
-                    .then( r => r?.response?.item )
-
+                    .then( r => Promise.resolve(r?.response?.item || r?.response?.items?.at(0)) )
 
         this.endSession = () => {
             [

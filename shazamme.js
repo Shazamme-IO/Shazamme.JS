@@ -36,112 +36,6 @@
                 return _ready;
             }
 
-            const handleOAuth = () => new Promise( (resolve, reject) => {
-                let uri = new URL(window.location.href);
-                let oAuthToken = uri.searchParams.get('code');
-
-                if (oAuthToken) {
-                    switch(sender.cookie('_op')) {
-                        case provider.seek : {
-                            sender.site().then( s => {
-                                let j = JSON.parse(localStorage.getItem('currentJobViewed'));
-                                let positionUri = `${uri.origin}${sender.bag('_site:pathJobDetails') || '/job-details'}/${new URL(j.data.jobURL).pathname.split('/').pop()}`;
-
-                                shazamme.submit({
-                                    action: 'Get Seek',
-                                    siteID: s.siteID,
-                                    redirectUri: `${uri.origin}${uri.pathname}`,
-                                    seekAuthorizationCode: oAuthToken,
-                                    applicationFormUrl: encodeURIComponent(`${uri.href}`),
-                                    advertiserId: seekAdvertiser,
-                                    positionTitle: j.data.jobName,
-                                    positionUri: positionUri,
-                                    countryCode: 'AU',
-                                    postalCode: j.data.postalCode || '2601', //use Canberra as default
-                                }).then( k => {
-                                    if (k.response.isExistingVinylEmail) {
-                                        sender.auth(seek.response.applicantInfo.emailAddress, true).then( s => {
-                                            if (s) {
-                                                sender.pub(message.auth, s);
-                                            } else {
-                                                sender._session = {
-                                                    isOAuth: true,
-                                                    isNew: true,
-                                                    email: k.response.applicantInfo.emailAddress,
-                                                    firstName: k.response.applicantInfo.firstName || '',
-                                                    lastName: k.response.applicantInfo.lastName || '',
-                                                    cVFileContent: k.response.resumeBinary,
-                                                    cVFileName: k.response.resumeFileName,
-                                                    provider: sender.cookie('_op'),
-                                                }
-
-                                                sender.pub(message.auth, {...sender._session});
-                                                resolve();
-                                            }
-                                        });
-                                    } else {
-                                        sender._session = {
-                                            isOAuth: true,
-                                            isNew: true,
-                                            email: k.response.applicantInfo.emailAddress,
-                                            firstName: k.response.applicantInfo.firstName || '',
-                                            lastName: k.response.applicantInfo.lastName || '',
-                                            cVFileContent: k.response.resumeBinary,
-                                            cVFileName: k.response.resumeFileName,
-                                            provider: sender.cookie('_op'),
-                                        }
-
-                                        sender.pub(message.auth, {...sender._session});
-                                        resolve();
-                                    }
-                                }).catch( () => {
-                                    resolve();
-                                });
-                            });
-
-                            break;
-                        }
-
-                        case provider.linkedin :
-                        default: {
-                            sender.site().then( s =>
-                                shazamme.submit({
-                                    action: s?.linkedinOpenID ? 'Get Linkedin OpenID' : 'Get Linkedin',
-                                    siteID: s?.siteID,
-                                    linkedIncode: oAuthToken,
-                                    redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
-                                })
-                            ).then( l => {
-                                l.status && sender.auth(l.response.email, true).then( s => {
-                                    if (s) {
-                                        sender.pub(message.auth, s);
-                                    } else {
-                                        sender._session = {
-                                            isOAuth: true,
-                                            isNew: true,
-                                            email: l.response.email,
-                                            firstName: l.response.firstName || '',
-                                            lastName: l.response.lastName || '',
-                                            provider: sender.cookie('_op'),
-                                        }
-
-                                        sender.pub(message.auth, {...sender._session});
-                                    }
-
-                                    resolve();
-                                });
-                            }).catch( () => {
-                                resolve();
-                            });
-
-                            break;
-                        }
-                    }
-                } else {
-                    resolve();
-                }
-            });
-
             sender._sid = sender._sid || sid;
 
             window[`shazamme-${version}-ready`] = _ready = new Promise( r => {
@@ -161,8 +55,6 @@
                     sender.site(),
 
                     sender._pageConfig(sid, p),
-
-                    handleOAuth(),
                 ])
                 .then( () => {
                     r();
@@ -254,40 +146,6 @@
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
                     if (campaignName?.length > 0) sessionStorage.referralCampaign = campaignName;
                     if (campaignContent?.length > 0) sessionStorage.referralContent = campaignContent;
-            }
-
-            if (window.firebase) {
-                try {
-                    firebase.auth().onAuthStateChanged( u => {
-                        if (u) {
-                            let isOAuth = u.providerData[0].providerId !== "password";
-                            let isNew = isOAuth && (new Date() - new Date(parseInt(u.metadata.createdAt)) <= 1 * 60 * 1000);
-
-                            sender.auth(u.email, isOAuth).then( s => {
-                                if (s || !isOAuth) {
-                                    sender.pub(message.auth, s);
-                                } else if (isOAuth) {
-                                    let name = (u.displayName || '').split(' ');
-
-                                    sender._session = {
-                                        isOAuth: isOAuth,
-                                        isNew: !s || isNew,
-                                        firebaseUserID: u.uid,
-                                        email: u.email,
-                                        lastName: name.pop() || '',
-                                        firstName: name.join(' '),
-                                    }
-
-                                    sender.pub(message.auth, {...sender._session});
-                                }
-                            });
-                        } else {
-                            sender.pub(message.auth);
-                        }
-                    });
-                } catch (ex) {
-                    sender.warn('Firebase was loaded but is not available. Please verify its configuration.', ex);
-                }
             }
 
             if (window.clarity) {
@@ -977,17 +835,28 @@
         this.currentUser = (refresh = false) => {
             this.trace('Warning: Use of the method currentUser() is deprecated. Please replace with the method user()');
 
-            return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
+            let u = undefined;
+
+            try {
+                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
+            } catch {}
+
+            return (u && !refresh && Promise.resolve({...u}))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
             || Promise.resolve();
         }
 
-        this.user = (refresh = false) =>
-            (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
-            || Promise.resolve();
+        this.user = (refresh = false) => {
+            let u = undefined;
 
-        this.session = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
+            try {
+                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
+            } catch {}
+
+            return (u && !refresh && Promise.resolve({...u}))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || Promise.resolve();
+        }
 
         this.bag = (k, v) => {
             if (k === undefined) {
@@ -1084,92 +953,13 @@
             }, () => Promise.resolve() )
 
         this.auth = (uid, isOAuth = false) => {
-            return sender.site().then( s =>
-                sender.submit({
-                    action: "Verify User",
-                    siteID: s.siteID,
-                    email: uid,
-                }).then( r => {
-                    let p = r?.response?.items[0];
-
-                    if (!p) {
-                        return Promise.resolve();
-                    }
-
-                    sender._session = {
-                        id: p.clientUserID,
-                        firebaseUserID: p.firebaseID,
-                        email: p.email,
-                        firstName: p.firstName,
-                        lastName: p.lastName,
-                        siteID: s.siteID,
-                        isOAuth: isOAuth,
-                        isNew: false,
-                        isVerified: p.firebaseID?.length > 0,
-                        is: p.is,
-                        clients: r.response.items
-                            .map( i => i.clientID )
-                            .filter( (v, i, self) => self.indexOf(v) === i ),
-                    }
-
-                    localStorage._s = btoa(JSON.stringify(sender._session));
-
-                    return sender._userRoles(sender._session).then( r => {
-                        r?.forEach( x => {
-                            if (x) {
-                                sender._session = {
-                                    ...sender._session,
-                                    ...x
-                                }
-                            }
-                        });
-
-                        let c = sender._session.candidate;
-
-                        if (c) {
-                            localStorage.vinylResponse = JSON.stringify({response: {
-                                ...c,
-                                photo: null,
-                                photoFileName: null,
-                                cVFileContent: null,
-                                cVFileName: null,
-                                coverLetterContent: null,
-                                coverLetterFileName: null,
-                            }});
-                        }
-
-                        return Promise.resolve({...sender._session});
-                    });
-                })
-            );
+            this.trace('WARNING: This version of Shazamme.JS no longer supports authentication. Consider migrating to version 1.0.2+ as soon as possible.');
+            return Promise.reject();
         }
 
         this.oauth = (p) => {
-            sender.site().then(s => {
-                sender.endSession();
-
-                let uri = new URL(window.location.href);
-                let r = `${uri.protocol}//${s.siteDomain}${uri.pathname}`;
-                let e = new Date(new Date().getTime + 2 * 60 * 1000);
-
-                switch (p) {
-                    case provider.linkedin: {
-                        let scope = encodeURIComponent(s.linkedinOpenID ? 'profile email openid' : 'r_liteprofile r_emailaddress');
-
-                        sender.cookie('_op', p, e);
-                        window.open(`https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${s.linkedinClientID}&redirect_uri=${encodeURIComponent(r)}&scope=${scope}`, '_self');
-                        break;
-                    }
-
-                    case provider.seek: {
-                        sender.cookie('_op', p, e);
-                        window.open(`https://www.seek.com.au/api/iam/oauth2/authorize?client_id=${s.seekClientID}&redirect_uri=${encodeURIComponent(r)}&advertiser_id=${seekAdvertiser}&scope=r_profile_apply&response_type=code`, '_self');
-                        break;
-                    }
-
-                    default: break;
-                }
-            });
+            this.trace('WARNING: This version of Shazamme.JS no longer supports authentication. Consider migrating to version 1.0.2+ as soon as possible.');
+            return Promise.reject();
         }
 
         this.quickRegister = (email) =>
@@ -1451,33 +1241,6 @@
                     sender.warn(`Error encountered looking for page configuration (${sid} : ${p}`, err);
                 });
         });
-
-        this._userRoles = (s) => Promise.all([
-            s.is?.indexOf('candidate') >= 0 && sender.submit({
-                    action: "Login Candidate",
-                    siteID: s.siteID,
-                    eMail: s.email,
-                }).then( r => {
-                    let c = r?.response?.items?.at(0);
-
-                    return Promise.resolve(c && { candidate: {...c} });
-                }),
-
-            s.is?.find( i => i.startsWith('client') ) && sender.client().then( c => c.submit({
-                    action: "Get Clients",
-                    siteID: s.siteID,
-                    clientUserID: s.id,
-                })).then( r => {
-                    let l = r?.response?.items;
-
-                    return Promise.resolve( l?.length > 0 && {clients: l.map( i => {
-                        return {
-                            id: i.clientID,
-                            name: i.clientName,
-                        }
-                    })});
-                }).catch( () => Promise.resolve() ),
-        ]);
     }
 
     if (!window[`shazamme-${version}`]) {

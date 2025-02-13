@@ -305,7 +305,7 @@ w.config({
 w.config().then( c => console.log('got configurtion', c) );
 ```
 
-### Logging and Tracing {#logging-and-tracing}
+### Logging and Tracing
 
 The widget wrapper includes logging methods for writing output to the browser console. When outputting to the console using the wrapper, additional data about the widget is implicitly included, such as the widget's version and configuration.
 

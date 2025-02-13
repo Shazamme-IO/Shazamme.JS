@@ -1,0 +1,40 @@
+.section-education .button-set button {
+    display: inline-block;
+    padding: 5px;
+    margin: 5px;
+    font-size: 1.1em;
+    border-radius: 3px;
+    background: #333;
+    color: white;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.section-education .button.action {
+    display: inherit;
+}
+
+.section-education .button.action.saved {
+    display: none;
+}
+
+.section-education.saved .button.action {
+    display: none;
+}
+
+.section-education.saved .button.action.saved {
+    display: inherit;
+}
+
+.section-education.saved .input-field-container input, 
+.section-education.saved .input-field-container textarea {
+    border: 0px !important;
+    background: transparent !important;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.section-education .input-field-container input.invalid, 
+.section-education .input-field-container textarea.invalid {
+    border: 1px solid red !important;
+}

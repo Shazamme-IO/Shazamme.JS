@@ -353,9 +353,9 @@
                         return o;
                     },
 
-                    pub: (msg, m) => {
+                    pub: (msg, m, p) => {
                         console.log(`${n} publishing message '${msg}'`, c);
-                        sender.pub(msg, m);
+                        sender.pub(msg, m, p);
 
                         return o;
                     },
@@ -597,11 +597,15 @@
 
                 _ps[n] = e;
 
+                if (_ps[`${n}::persistent`]) {
+                    on(_ps[`${n}::persistent`]);
+                }
+
                 return h;
             }
         }
 
-        this.pub = (n, m) => {
+        this.pub = (n, m, p) => {
             if (n?.length > 0) {
                 let e = _ps[n];
 
@@ -609,6 +613,13 @@
                     for (let h in e) {
                         e[h](m, h);
                     }
+                }
+
+                if (p) {
+                    let pe = _ps[`${n}::persistent`] || [];
+
+                    pe.push(m);
+                    _ps[`${n}::persistent`] = pe;
                 }
             }
         }
@@ -971,8 +982,6 @@
             || Promise.resolve();
         }
 
-        this.currentSession = (refresh = false) => localStorage._s && JSON.parse(atob(localStorage._s));
-
         this.user = (refresh = false) =>
             (this._session && !refresh && Promise.resolve({...this._session}))
             || (localStorage._s && sender.auth(JSON.parse(atob(localStorage._s)).email))
@@ -1043,6 +1052,36 @@
 
             return v;
         }
+
+        this.unique = (v, i, self) => self.indexOf(v) === i;
+
+        this.geoLocate = () => new Promise( (res, rej) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition( p => res(p), () => res() )
+            } else {
+                res();
+            }
+        });
+
+        this.geoCode = (k, lat, lon) =>
+            (k?.length > 0 && lat && lon && $.ajax({
+                url: `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${k}`
+            }) || Promise.resolve())
+            .then( r => {
+                if (r?.results?.length > 0) {
+                    let address = {}
+
+                    r.results[0].address_components.forEach( c => {
+                        c.types.forEach( t => {
+                            address[t] = c.short_name;
+                        });
+                    });
+
+                    return Promise.resolve(address);
+                }
+
+                return Promise.resolve();
+            }, () => Promise.resolve() )
 
         this.auth = (uid, isOAuth = false) => {
             return sender.site().then( s =>
@@ -1132,6 +1171,21 @@
                 }
             });
         }
+
+        this.quickRegister = (email) =>
+            email?.length === 0 && Promise.reject()
+                || sender.firebase().validateEmail(email)
+                    .then( () => sender.site() )
+                    .then( s => sender.submit({
+                        action: 'Register Candidate',
+                        eMail: email,
+                        firstName: ' ',
+                        isActive: true,
+                        isValidated: false,
+                        isSubscribed: false,
+                        dudaSiteID: s.dudaSiteID,
+                    }))
+                    .then( r => Promise.resolve(r?.response?.item || r?.response?.items?.at(0)) )
 
         this.endSession = () => {
             [
@@ -1297,6 +1351,8 @@
 
             sender._toastWait = wait + t;
         });
+
+        this.message = {...message};
 
         this._v = version;
 

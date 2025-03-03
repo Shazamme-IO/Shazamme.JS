@@ -670,7 +670,7 @@
                         }
 
                         $.ajax({
-                            url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions',
+                            url: 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions',
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Site ID',
@@ -678,9 +678,9 @@
                             })
                         }).then( res => {
                             sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
-                            sender._site.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
-                            sender._site.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
-                            sender._site.documentUri = 'https://staging.shazamme.salsa.hosting/candidate-document/';
+                            sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
+                            sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
+                            sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
 
                             resolve(sender._site);
                         });
@@ -1231,7 +1231,7 @@
             sender.site().then( s => {
                 const uri = s?.isLive
                     ? 'https://shazamme.io/Job-Listing/src/php/client/actions'
-                    : 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/client/actions';
+                    : 'https://staging.shazamme.io/Job-Listing/src/php/client/actions';
 
                 return Promise.resolve({
                     submit: (d) =>

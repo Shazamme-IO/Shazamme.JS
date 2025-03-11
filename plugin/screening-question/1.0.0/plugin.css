@@ -3,12 +3,17 @@
     text-align:left;
 }
 
-.input-field-container {
+.input-field-container, .input-options-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: start;
     margin-bottom: 0px;
     padding: 10px 0px;
+}
+
+.input-options-container {
+    grid-column-start: 1;
+    grid-column-end: 3;
 }
 
 .sq-list-question {

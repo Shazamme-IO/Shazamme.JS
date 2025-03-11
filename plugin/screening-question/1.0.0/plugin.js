@@ -512,7 +512,7 @@
                                 `
                                 || ''
                                 }
-                                ${opts.join('')}
+                                <div class="input-options-container">${opts.join('')}</div>
                              </div>
                         `;
                     }

@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css`)
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=3368`)
         .then();
 
     shazamme.plugin = {
@@ -563,7 +563,21 @@
                         `;
 
                     case 'Header':
-                        return `<div class='screening-question-heading'><h3>${q.question}</h3</div>`;
+                        return `
+                            <div class='screening-question-heading'>
+                                <h3>${q.question}</h3>
+                                ${ q.helpText?.length > 0 && `
+                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
+                                    <p class="text-main">${q.helpText || ''}</p>
+                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
+                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
+                                    </div>
+                                </div>
+                                `
+                                || ''
+                                }
+                        </div>
+                        `;
 
                     default: return '';
                 }

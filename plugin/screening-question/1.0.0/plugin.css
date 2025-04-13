@@ -128,10 +128,14 @@
 }
 
 .sq-opt-list {
-    display: flex;
+    display: grid;
     column-fill: balance;
-    flex-flow: wrap;
     justify-content: flex-start;
+    grid-column-start: 1;
+    grid-column-end: 3;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    column-gap: 10px;
 }
 
 .sq-opt-list .sq-question-option {

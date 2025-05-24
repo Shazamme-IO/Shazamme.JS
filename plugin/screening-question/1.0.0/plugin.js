@@ -475,7 +475,7 @@
                         `;
 
                     case 'List': {
-                        let opts = q.options.map( o => `<option value="${o.screeningQuestionOptionsID}">${o.label || o.option}</option>`);
+                        let opts = q.options?.map( o => `<option value="${o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
 
                         return `
                              <div class="input-field-container">
@@ -497,7 +497,7 @@
 
                     case 'Multiselect List':
                     case 'Multiselect Checkbox': {
-                        let opts = q.options.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`);
+                        let opts = q.options?.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
 
                         return `
                              <div class="input-field-container">
@@ -518,7 +518,7 @@
                     }
 
                     case 'Radio': {
-                        let opts = q.options.map( o => `<label class="sq-question-option"><input type="radio" data-qtype="radio" name="${q.screeningQuestionID}" data-qid="${q.screeningQuestionID}" value="${o.screeningQuestionOptionsID}" ${q.isMandatory ? 'required' : ''} />${o.label || o.option}</label>`);
+                        let opts = q.options?.map( o => `<label class="sq-question-option"><input type="radio" data-qtype="radio" name="${q.screeningQuestionID}" data-qid="${q.screeningQuestionID}" value="${o.screeningQuestionOptionsID}" ${q.isMandatory ? 'required' : ''} />${o.label || o.option}</label>`) || [];
 
                         return `
                              <div class="input-field-container">

@@ -314,7 +314,7 @@
                         let f = $(this);
                         let field = f.attr('data-qid');
 
-                        const message = shazamme.bag('site-config')?.message;
+                        const message = (shazamme.bag('upload-dialog') ?? shazamme.bag('site-config'))?.message;
 
                         shazamme.pub(message?.uploadShow, {
                             showFiles: true,

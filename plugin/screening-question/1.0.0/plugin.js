@@ -358,8 +358,10 @@
                     container
                         .find('input, select')
                         .on('change', function() {
-                            sender._recordAnswers();
-                            sender._showQuestions(page, false);
+                            if (!$(this).is('[data-qtype=date]')) {
+                                sender._recordAnswers();
+                                sender._showQuestions(page, false);
+                            }
                         });
                 }
 

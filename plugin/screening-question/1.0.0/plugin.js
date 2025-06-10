@@ -262,6 +262,9 @@
                     .empty()
                     .append(el)
                     .append(sender._pagingElements(page))
+                    .css({
+                        'padding': '0px',
+                    });
 
                 container
                     .find('.sq-help-text[collapsible]')

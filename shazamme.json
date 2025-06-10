@@ -77,13 +77,13 @@
 				},
 				{
 					"fieldLabel": "Last Name",
-					"fieldName": "surname",
+					"fieldName": "lastName",
 					"fieldRequired": true,
 					"fieldType": "text"
 				},
 				{
 					"fieldLabel": "Email",
-					"fieldName": "eMail",
+					"fieldName": "email",
 					"fieldRequired": true,
 					"fieldType": "email"
 				},
@@ -95,23 +95,6 @@
 				},
 				{
 					"fieldName": "separator"
-				},
-				{
-					"fieldLabel": "Resume",
-					"fieldName": "file",
-					"fieldRequired": true,
-					"showOnAuth": true,
-					"fileIsResume": true
-				},
-				{
-					"fieldLabel": "Cover Letter",
-					"fieldName": "file",
-					"showOnAuth": true,
-					"fileIsCover": true
-				},
-				{
-					"fieldName": "separator",
-					"showOnAuth": true
 				},
 				{
 					"fieldLabel": "I agree to the terms",

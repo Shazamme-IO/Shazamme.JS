@@ -244,6 +244,23 @@
     background: #a6a6a6;
 }
 
+.menu {
+    display: none;
+    position: fixed;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    background: #dedede;
+    border: 1px solid #666;
+    width: 75%;
+    margin: auto;
+    height: 500px;
+    overflow: auto;
+    padding: 20px;
+    text-align: left;
+}
+
 @media screen and (max-width: 720px) {
     .input-field-container .sq-question-option, .input-field-container .text {
         grid-column-start: 1;

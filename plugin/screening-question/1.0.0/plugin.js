@@ -500,7 +500,38 @@
                         `;
                     }
 
-                    case 'Multiselect List':
+                    case 'Multiselect List':  {
+                        let opts = q.options?.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
+
+                        return `
+                             <div class="input-field-container">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
+                                ${ q.helpText?.length > 0 && `
+                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
+                                    <p class="text-main">${q.helpText || ''}</p>
+                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
+                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
+                                    </div>
+                                </div>
+                                `
+                                || ''
+                                }
+                                <div class="input-options-container">
+                                    <
+                                    <button  class="button-multi-select" data-rel="select-multi" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>
+                                        <span class="text">Choose one or more...</span>
+                                    </button>
+
+                                    <div class="menu" data-rel="menu-multi-select" data-qid="${q.screeningQuestionID}">
+                                        <div class="list">${opts.join()}</div>
+
+                                        <button class="button-dismiss" data-rel="menu-multi-select"><span class="text">Close</span></button>
+                                    </div>
+                                </div>
+                             </div>
+                        `;
+                    }
+
                     case 'Multiselect Checkbox': {
                         let opts = q.options?.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
 

@@ -138,8 +138,10 @@
     column-gap: 10px;
 }
 
-.sq-opt-list .sq-question-option {
-    display: flex;
+.section-form .field .sq-opt-list .sq-question-option {
+    display: grid;
+    grid-template-columns: 0.1fr 1fr;
+    grid-column-gap: 10px;
     margin: 8px 5px 5px 8px;
     width: 100%;
     border: 1px solid #a6a6a6;
@@ -149,6 +151,7 @@
 
 .sq-opt-list .sq-question-option input[type=radio] {
     margin: 3px 5px;
+    height: 1em;
 }
 
 .screening-pages-container .button-page-nav {

@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.0';
+    const Version = '1.0.1';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -357,6 +357,43 @@
                         });
                     });
 
+                container
+                    .find('[data-rel=select-multi]')
+                    .on('click', function() {
+                        let f = $(this);
+
+                        f
+                            .siblings('[data-rel=menu-multi-select]')
+                            .show()
+                            .css({
+                                display: 'flex',
+                            });
+                    });
+
+                container
+                    .find('[data-rel=menu-multi-select]')
+                    .on('click', function() {
+                        let f = $(this);
+
+                        let selected = f
+                            .siblings('.list')
+                            .find(':checked')
+                            .toArray()
+                            .map( i => $(i).parent().text() )
+                            .join(', ');
+
+                        if (selected.length === 0) {
+                            selected = config.multiSelectPrompt || 'Choose one or more...';
+                        }
+
+                        f
+                            .parents('[data-rel=menu-multi-select]')
+                            .hide()
+                            .parent()
+                            .find('[data-rel=select-multi] .text')
+                            .text(selected);
+                    });
+
                 if (this._pages[page]?.find( q => q.parentQuestionID )) {
                     container
                         .find('input, select')
@@ -517,15 +554,15 @@
                                 || ''
                                 }
                                 <div class="input-options-container">
-                                    <
                                     <button  class="button-multi-select" data-rel="select-multi" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>
-                                        <span class="text">Choose one or more...</span>
+                                        <span class="text">${config.multiSelectPrompt || 'Choose one or more...'}</span>
                                     </button>
 
                                     <div class="menu" data-rel="menu-multi-select" data-qid="${q.screeningQuestionID}">
-                                        <div class="list">${opts.join()}</div>
+                                        <div class="title ${q.isMandatory ? 'required' : ''}">${q.question}</div>
+                                        <div class="list">${opts.join('')}</div>
 
-                                        <button class="button-dismiss" data-rel="menu-multi-select"><span class="text">Close</span></button>
+                                        <button class="button-dismiss" data-rel="menu-multi-select"><span class="text">${config.multiSelectDismiss || 'Close'}</span></button>
                                     </div>
                                 </div>
                              </div>

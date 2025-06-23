@@ -298,10 +298,6 @@
     padding: 20px;
 }
 
-.screening-questions .menu .button-dismiss .text {
-    text-align: left;
-}
-
 @media screen and (max-width: 720px) {
     .input-field-container .sq-question-option, .input-field-container .text {
         grid-column-start: 1;

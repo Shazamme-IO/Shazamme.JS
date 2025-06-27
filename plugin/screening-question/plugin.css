@@ -4,7 +4,7 @@
 }
 
 .input-field-container, .input-options-container {
-    display: grid;
+    display: block;
     grid-template-columns: 1fr 1fr;
     align-items: start;
     margin-bottom: 0px;
@@ -255,17 +255,18 @@
     display: none;
     flex-direction: column;
     position: fixed;
-    top: 0px;
     bottom: 0px;
     left: 0px;
     right: 0px;
     background: #fafafa;
     border: 1px solid #eee;
     width: 75vw;
-    height: 25vh;
+    min-height: 50vh;
+    max-height: 70vh;
     margin: auto;
     overflow: auto;
     text-align: left;
+    z-index: 10;
 }
 
 .screening-questions .menu .title {

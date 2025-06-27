@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=3368`)
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=3369`)
         .then();
 
     shazamme.plugin = {

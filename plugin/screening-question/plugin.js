@@ -142,7 +142,7 @@
             const validate = () => {
                 let isOk = true;
 
-                container.find('input[required], select[required], button[required]').each( (i, el) => {
+                container.find('input[required], textarea[required], select[required], button[required]').each( (i, el) => {
                     let field = $(el);
 
                     switch (field.attr('data-qtype')) {
@@ -458,6 +458,24 @@
                             </div>
                         `;
 
+                    case 'Text Block':
+                        return `
+                             <div class="input-field-container">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
+                                <textarea class="sq-input-text-block-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}></textarea>
+                                ${ q.helpText?.length > 0 && `
+                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
+                                    <p class="text-main">${q.helpText || ''}</p>
+                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
+                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
+                                    </div>
+                                </div>
+                                `
+                                || ''
+                                }
+                            </div>
+                        `;
+
                     case 'Number':
                         return `
                              <div class="input-field-container">
@@ -700,7 +718,7 @@
 
             this._recordAnswers = () => {
 
-                container.find('input, select').each( (i, el) => {
+                container.find('input, textarea, select').each( (i, el) => {
                     let field = $(el);
 
                     switch (field.attr('data-qtype')) {
@@ -823,13 +841,14 @@
                         continue;
                     }
 
-                    if (container.find(`input[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
+                    if (container.find(`input[data-qid=${qid}]:visible, textarea[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
                         delete sender._answers[qid];
                         continue;
                     }
 
                     if (ans.answerText || ans.answerNum) {
                         container.find(`input[data-qid=${qid}]`).val(ans.answerText || ans.answerNum);
+                        container.find(`textarea[data-qid=${qid}]`).val(ans.answerText || ans.answerNum);
                     } else if (ans.answerDate) {
                         container.find(`input[data-qid=${qid}]`).val(ans.answerDate.substr(0, 10));
                     } else if (ans.answerBoolean && !ans.answerUUID) {

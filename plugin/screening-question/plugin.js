@@ -364,19 +364,16 @@
 
                         f
                             .siblings('[data-rel=menu-multi-select]')
-                            .show()
-                            .css({
-                                display: 'flex',
-                            });
+                            .toggle();
                     });
 
                 container
                     .find('[data-rel=menu-multi-select]')
-                    .on('click', function() {
+                    .on('change', '[data-qtype=check-list]', function() {
                         let f = $(this);
 
                         let selected = f
-                            .siblings('.list')
+                            .parents('.list')
                             .find(':checked')
                             .toArray()
                             .map( i => $(i).parent().text() )
@@ -388,9 +385,8 @@
 
                         f
                             .parents('[data-rel=menu-multi-select]')
-                            .hide()
-                            .parent()
-                            .find('[data-rel=select-multi] .text')
+                            .siblings('[data-rel=select-multi]')
+                            .find('.text')
                             .text(selected);
                     });
 
@@ -559,10 +555,7 @@
                                     </button>
 
                                     <div class="menu" data-rel="menu-multi-select" data-qid="${q.screeningQuestionID}">
-                                        <div class="title ${q.isMandatory ? 'required' : ''}">${q.question}</div>
                                         <div class="list">${opts.join('')}</div>
-
-                                        <button class="button-dismiss" data-rel="menu-multi-select"><span class="text">${config.multiSelectDismiss || 'Close'}</span></button>
                                     </div>
                                 </div>
                              </div>

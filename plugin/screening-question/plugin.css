@@ -71,6 +71,10 @@
     padding: 0 10px;
 }
 
+.input-field-container textarea {
+    height: 80px;
+}
+
 .sq-help-text {
     font-size: 12px;
     text-align: left;

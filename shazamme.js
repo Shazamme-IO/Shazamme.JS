@@ -717,8 +717,8 @@
 
                 dmAPI.getCollection({ collectionName: c.name })
                     .then(r => {
-                        if (r?.length > 0) {
-                            if (c.useCache) {
+                        if (r?.length > 0 || r?.length == 0) {
+                            if (c.useCache && r.length > 0) {
                                 c._cache = r;
                             }
 

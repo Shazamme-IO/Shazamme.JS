@@ -287,11 +287,6 @@
     cursor: pointer;
 }
 
-.screening-questions .menu .list label input {
-    width: 1.05em;
-    height: 1.05em;
-}
-
 .screening-questions .menu .button-dismiss {
     padding: 20px;
 }

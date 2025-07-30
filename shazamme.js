@@ -1197,20 +1197,38 @@
             });
         }
 
-        this.quickRegister = (email) =>
-            email?.length === 0 && Promise.reject()
+        this.quickRegister = (email) => {
+            let cid = sender.uuid();
+
+            return email?.length === 0 && Promise.reject()
                 || sender.firebase().validateEmail(email)
-                    .then( () => sender.site() )
-                    .then( s => sender.submit({
-                        action: 'Register Candidate',
-                        eMail: email,
-                        firstName: ' ',
-                        isActive: true,
-                        isValidated: false,
-                        isSubscribed: false,
-                        dudaSiteID: s.dudaSiteID,
-                    }))
-                    .then( r => Promise.resolve(r?.response?.item || r?.response?.items?.at(0)) )
+                    .then( () => sender.site() ).then( s => {
+                        return sender.submit({
+                            action: 'Register Candidate',
+                            eMail: email,
+                            firstName: ' ',
+                            isActive: true,
+                            isValidated: false,
+                            isSubscribed: false,
+                            dudaSiteID: s.dudaSiteID,
+                            candidateID: cid,
+                        }).then( r => Promise.resolve(
+                            r?.response?.item
+                            || r?.response?.items?.at(0)
+                            || {
+
+                                siteID: s.siteID,
+                                eMail: email,
+                                firstName: " ",
+                                isActive: true,
+                                isSubscribed: false,
+                                isValidated: false,
+                                candidateID: cid,
+                            }
+                            )
+                        )
+                    });
+        }
 
         this.endSession = () => {
             [

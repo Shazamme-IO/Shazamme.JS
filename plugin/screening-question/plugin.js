@@ -357,39 +357,6 @@
                         });
                     });
 
-                container
-                    .find('[data-rel=select-multi]')
-                    .on('click', function() {
-                        let f = $(this);
-
-                        f
-                            .siblings('[data-rel=menu-multi-select]')
-                            .toggle();
-                    });
-
-                container
-                    .find('[data-rel=menu-multi-select]')
-                    .on('change', '[data-qtype=check-list]', function() {
-                        let f = $(this);
-
-                        let selected = f
-                            .parents('.list')
-                            .find(':checked')
-                            .toArray()
-                            .map( i => $(i).parent().text() )
-                            .join(', ');
-
-                        if (selected.length === 0) {
-                            selected = config.multiSelectPrompt || 'Choose one or more...';
-                        }
-
-                        f
-                            .parents('[data-rel=menu-multi-select]')
-                            .siblings('[data-rel=select-multi]')
-                            .find('.text')
-                            .text(selected);
-                    });
-
                 if (this._pages[page]?.find( q => q.parentQuestionID )) {
                     container
                         .find('input, select')
@@ -552,11 +519,12 @@
                     }
 
                     case 'Multiselect List':  {
-                        let opts = q.options?.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
+                        let opts = q.options?.map( o => `<option value="${o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
 
                         return `
                              <div class="input-field-container">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
+                                <select data-qtype="multi-list" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>${opts.join('')}</select>
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -567,15 +535,6 @@
                                 `
                                 || ''
                                 }
-                                <div class="input-options-container">
-                                    <button  class="button-multi-select" data-rel="select-multi" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>
-                                        <span class="text">${config.multiSelectPrompt || 'Choose one or more...'}</span>
-                                    </button>
-
-                                    <div class="menu" data-rel="menu-multi-select" data-qid="${q.screeningQuestionID}">
-                                        <div class="list">${opts.join('')}</div>
-                                    </div>
-                                </div>
                              </div>
                         `;
                     }
@@ -770,7 +729,8 @@
                             break;
                         }
 
-                        case 'list': {
+                        case 'list':
+                        case 'multi-list': {
                             if (field.val()) {
                                 sender._answers[field.attr('data-qid')] = {
                                     screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
@@ -1061,16 +1021,34 @@
                     this._showEditor();
                 }
 
-                return Promise.resolve({
-                    nextPage: nextPage,
-                    prevPage: prevPage,
-                    answers: answers,
-                    loadAnswers: loadAnswers,
-                    knockout: knockout,
-                    container: container,
-                    validate: validate,
-                    message: Message,
-                    version: Version,
+                return Promise.all([
+                    shazamme.style('https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'),
+                    shazamme.script('https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'),
+                ]).then( () => {
+                    try {
+                        container.find('[data-qtype=multi-list]')
+                            .val('')
+                            .select2({
+                                placeholder: config.multiSelectPrompt || 'Choose one or more...',
+                                allowClear: true,
+                                closeOnSelect: false,
+                                multiple: true,
+                            });
+                    } catch (ex) {
+                        shazamme.ex('Error loading multi-select plugin', ex);
+                    }
+
+                    return Promise.resolve({
+                        nextPage: nextPage,
+                        prevPage: prevPage,
+                        answers: answers,
+                        loadAnswers: loadAnswers,
+                        knockout: knockout,
+                        container: container,
+                        validate: validate,
+                        message: Message,
+                        version: Version,
+                    });
                 });
             });
         },

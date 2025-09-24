@@ -1266,6 +1266,38 @@
                 })
             });
 
+        this.seek = () =>
+            sender.site().then( s => {
+                const uri = s?.isLive
+                    ? 'https://shazamme.io/seek/'
+                    : 'https://staging.shazamme.io/seek/';
+
+                let uri = new URL(window.location.href);
+
+                return Promise.resolve({
+                    getButton: () =>
+                        $.ajax({
+                            url: uri,
+                            type: 'POST',
+                            data: JSON.stringify({
+                                action: 'Get Seek Button',
+                                applicationUri: uri.toString(),
+                                token: uri.searchParams.get('seek-token'),
+                            }),
+                        }),
+
+                    getProfile: () =>
+                        $.ajax({
+                            url: uri,
+                            type: 'POST',
+                            data: JSON.stringify({
+                                action: 'Get Seek Profile',
+                                id: uri.searchParams.get('seek-prefill-id'),
+                            }),
+                        }),
+                })
+            });
+
 
         this.log = (m, ...p) => {
             console.log(m, ...p);

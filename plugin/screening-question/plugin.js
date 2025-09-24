@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.1';
+    const Version = '1.0.1-test';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -40,21 +40,10 @@
                 this._recordAnswers();
 
                 for (let i in this._answers) {
-                    let a = {
+                    d.push({
                         ...this._answers[i],
                         candidateID: cid,
-                    };
-
-                    if (typeof(a.answerUUID) === 'object' && a.answerUUID?.length > 0) {
-                        d.push(...a.answerUUID.map( x => new Object({
-                            screeningQuestionID: a.screeningQuestionID,
-                            answerUUID: x,
-                            screeningTemplateID: a.screeningTemplateID,
-                            candidateID: cid,
-                        })));
-                    } else {
-                        d.push(a);
-                    }
+                    });
                 }
 
                 return {
@@ -732,10 +721,13 @@
                         case 'list':
                         case 'multi-list': {
                             if (field.val()) {
+                                let v = field.val();
+                                let a = typeof(v) === 'string' ? [v] : v;
+
                                 sender._answers[field.attr('data-qid')] = {
                                     screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
-                                    answerUUID: field.val(),
+                                    answerUUID: a,
                                     screeningTemplateID: sender._screeningTemplateID,
                                 };
                             } else {
@@ -774,7 +766,7 @@
                                 sender._answers[field.attr('data-qid')] = {
                                     screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
-                                    answerUUID: field.attr('value'),
+                                    answerUUID: [field.attr('value')],
                                     screeningTemplateID: sender._screeningTemplateID,
                                 };
                             }

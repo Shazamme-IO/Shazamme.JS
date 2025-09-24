@@ -1,0 +1,8 @@
+{
+	"options": [
+		{
+			"value": "https://sdk.shazamme.io/js/plugin/application-experience/1.0.0/plugin.min.js",
+			"label": "v1.0.0 (Latest)"
+		}
+	]
+}

@@ -1,12 +1,12 @@
 (() => {
-    const Version = '1.0.1';
+    const Version = '1.0.0-test';
 
     const Message = {
         submit: 'screening-question-apply',
     }
 
     shazamme
-        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=3369`)
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=3368`)
         .then();
 
     shazamme.plugin = {
@@ -131,7 +131,7 @@
             const validate = () => {
                 let isOk = true;
 
-                container.find('input[required], textarea[required], select[required], button[required]').each( (i, el) => {
+                container.find('input[required], select[required], button[required]').each( (i, el) => {
                     let field = $(el);
 
                     switch (field.attr('data-qtype')) {
@@ -410,24 +410,6 @@
                             </div>
                         `;
 
-                    case 'Text Block':
-                        return `
-                             <div class="input-field-container">
-                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                <textarea class="sq-input-text-block-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}></textarea>
-                                ${ q.helpText?.length > 0 && `
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                                `
-                                || ''
-                                }
-                            </div>
-                        `;
-
                     case 'Number':
                         return `
                              <div class="input-field-container">
@@ -507,27 +489,7 @@
                         `;
                     }
 
-                    case 'Multiselect List':  {
-                        let opts = q.options?.map( o => `<option value="${o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
-
-                        return `
-                             <div class="input-field-container">
-                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                <select data-qtype="multi-list" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>${opts.join('')}</select>
-                                ${ q.helpText?.length > 0 && `
-                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
-                                    <p class="text-main">${q.helpText || ''}</p>
-                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
-                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
-                                    </div>
-                                </div>
-                                `
-                                || ''
-                                }
-                             </div>
-                        `;
-                    }
-
+                    case 'Multiselect List':
                     case 'Multiselect Checkbox': {
                         let opts = q.options?.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
 
@@ -659,7 +621,7 @@
 
             this._recordAnswers = () => {
 
-                container.find('input, textarea, select').each( (i, el) => {
+                container.find('input, select').each( (i, el) => {
                     let field = $(el);
 
                     switch (field.attr('data-qtype')) {
@@ -718,16 +680,12 @@
                             break;
                         }
 
-                        case 'list':
-                        case 'multi-list': {
+                        case 'list': {
                             if (field.val()) {
-                                let v = field.val();
-                                let a = typeof(v) === 'string' ? [v] : v;
-
                                 sender._answers[field.attr('data-qid')] = {
                                     screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
                                     screeningQuestionID: field.attr('data-qid'),
-                                    answerUUID: a,
+                                    answerUUID: [field.val()],
                                     screeningTemplateID: sender._screeningTemplateID,
                                 };
                             } else {
@@ -786,14 +744,13 @@
                         continue;
                     }
 
-                    if (container.find(`input[data-qid=${qid}]:visible, textarea[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
+                    if (container.find(`input[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
                         delete sender._answers[qid];
                         continue;
                     }
 
                     if (ans.answerText || ans.answerNum) {
                         container.find(`input[data-qid=${qid}]`).val(ans.answerText || ans.answerNum);
-                        container.find(`textarea[data-qid=${qid}]`).val(ans.answerText || ans.answerNum);
                     } else if (ans.answerDate) {
                         container.find(`input[data-qid=${qid}]`).val(ans.answerDate.substr(0, 10));
                     } else if (ans.answerBoolean && !ans.answerUUID) {
@@ -801,12 +758,15 @@
                     } else if (ans.answerUUID) {
                         if (typeof(ans.answerUUID) === 'string') {
                             ans.answerUUID = ans.answerUUID.split(',');
+                        } else {
+                            ans.answerUUID = ans.answerUUID.map( i => i.answerUUID );
+
                         }
 
                         ans.answerUUID.forEach( v => {
-                            container.find(`input[data-qid=${qid}][data-value=${v.trim()}]`).attr('checked', true);
-                            container.find(`input[data-qid=${qid}][value=${v.trim()}]`).attr('checked', true);
-                            container.find(`select[data-qid=${qid}]`).val(v.trim());
+                            container.find(`input[data-qid=${qid}][data-value=${(v || '').trim()}]`).attr('checked', true);
+                            container.find(`input[data-qid=${qid}][value=${(v || '').trim()}]`).attr('checked', true);
+                            container.find(`select[data-qid=${qid}]`).val((v || '').trim());
                         });
                     } else if (ans.answerFile) {
                         container.find(`input[data-qid=${qid}]`).val(this._fileBlob(ans.answerFile));
@@ -1013,34 +973,16 @@
                     this._showEditor();
                 }
 
-                return Promise.all([
-                    shazamme.style('https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'),
-                    shazamme.script('https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'),
-                ]).then( () => {
-                    try {
-                        container.find('[data-qtype=multi-list]')
-                            .val('')
-                            .select2({
-                                placeholder: config.multiSelectPrompt || 'Choose one or more...',
-                                allowClear: true,
-                                closeOnSelect: false,
-                                multiple: true,
-                            });
-                    } catch (ex) {
-                        shazamme.ex('Error loading multi-select plugin', ex);
-                    }
-
-                    return Promise.resolve({
-                        nextPage: nextPage,
-                        prevPage: prevPage,
-                        answers: answers,
-                        loadAnswers: loadAnswers,
-                        knockout: knockout,
-                        container: container,
-                        validate: validate,
-                        message: Message,
-                        version: Version,
-                    });
+                return Promise.resolve({
+                    nextPage: nextPage,
+                    prevPage: prevPage,
+                    answers: answers,
+                    loadAnswers: loadAnswers,
+                    knockout: knockout,
+                    container: container,
+                    validate: validate,
+                    message: Message,
+                    version: Version,
                 });
             });
         },

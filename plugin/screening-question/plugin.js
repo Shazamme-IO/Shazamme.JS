@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.1';
+    const Version = '1.0.1-test';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -803,10 +803,12 @@
                             ans.answerUUID = ans.answerUUID.split(',');
                         }
 
+                        ans.answerUUID = ans.answerUUID.map( i => i.answerUUID );
+
                         ans.answerUUID.forEach( v => {
-                            container.find(`input[data-qid=${qid}][data-value=${v.trim()}]`).attr('checked', true);
-                            container.find(`input[data-qid=${qid}][value=${v.trim()}]`).attr('checked', true);
-                            container.find(`select[data-qid=${qid}]`).val(v.trim());
+                            container.find(`input[data-qid=${qid}][data-value=${(v || '').trim()}]`).attr('checked', true);
+                            container.find(`input[data-qid=${qid}][value=${(v || '').trim()}]`).attr('checked', true);
+                            container.find(`select[data-qid=${qid}]`).val((v || '').trim());
                         });
                     } else if (ans.answerFile) {
                         container.find(`input[data-qid=${qid}]`).val(this._fileBlob(ans.answerFile));

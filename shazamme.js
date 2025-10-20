@@ -1272,7 +1272,7 @@
                     ? 'https://shazamme.io/seek/'
                     : 'https://staging.shazamme.io/seek/';
 
-                let uri = new URL(window.location.href);
+                let pageUri = new URL(window.location.href);
 
                 return Promise.resolve({
                     getButton: () =>
@@ -1281,8 +1281,8 @@
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Seek Button',
-                                applicationUri: uri.toString(),
-                                token: uri.searchParams.get('seek-token'),
+                                applicationUri: pageUri.toString(),
+                                token: pageUri.searchParams.get('seek-token'),
                             }),
                         }),
 
@@ -1292,7 +1292,7 @@
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Seek Profile',
-                                id: uri.searchParams.get('seek-prefill-id'),
+                                id: pageUri.searchParams.get('seek-prefill-id'),
                             }),
                         }),
                 })

@@ -85,9 +85,9 @@
                                     || (i.questionType === 'Number'&& a.answerNum === i.knockOutNumber)
                                     || (i.questionType === 'Date'&& a.answerDate === i.knockOutDate)
                                     || (i.questionType === 'Boolean'&& a.answerBoolean === i.knockOutBoolean)
-                                    || (i.questionType === 'List' && a.answerUUID === i.knockOutList)
+                                    || (i.questionType === 'List' && a.answerUUID?.indexOf(i.knockOutList) >= 0)
                                     || (i.questionType === 'Multiselect Checkbox' && (a.answerUUID?.indexOf(i.knockOutList) >= 0 || a.answerBoolean === i.knockOutBoolean))
-                                    || (i.questionType === 'Radio' && a.answerUUID === i.knockOutList)
+                                    || (i.questionType === 'Radio' && a.answerUUID?.indexOf(i.knockOutList) >= 0)
                                 )
                         )
                     )
@@ -487,7 +487,8 @@
                         `;
 
                     case 'List': {
-                        let opts = q.options?.map( o => `<option value="${o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
+                        let isBlank = (o) => !(o.option?.length > 0);
+                        let opts = q.options?.map( o => `<option value="${isBlank(o) ? '' : o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
 
                         return `
                              <div class="input-field-container">

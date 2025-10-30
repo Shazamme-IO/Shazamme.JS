@@ -37,6 +37,10 @@
             const answers = () => {
                 let d = [];
 
+                if (!this._screeningTemplateID) {
+                    return undefined;
+                }
+
                 this._recordAnswers();
 
                 for (let i in this._answers) {
@@ -76,6 +80,10 @@
                     });
 
             const knockout = () => {
+                if (!this._screeningTemplateID) {
+                    return true;
+                }
+
                 let ko = answers().values
                     .map( a =>
                         sender._ko.find( i =>

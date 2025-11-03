@@ -1283,6 +1283,7 @@
                                 action: 'Get Seek Button',
                                 applicationUri: pageUri.toString(),
                                 token: pageUri.searchParams.get('seek-token'),
+                                hirerID: s.seekClientAdvertiserID,
                             }),
                         }),
 

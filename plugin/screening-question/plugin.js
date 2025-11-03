@@ -37,6 +37,10 @@
             const answers = () => {
                 let d = [];
 
+                if (!this._screeningTemplateID) {
+                    return undefined;
+                }
+
                 this._recordAnswers();
 
                 for (let i in this._answers) {
@@ -76,6 +80,10 @@
                     });
 
             const knockout = () => {
+                if (!this._screeningTemplateID) {
+                    return true;
+                }
+
                 let ko = answers().values
                     .map( a =>
                         sender._ko.find( i =>
@@ -85,9 +93,9 @@
                                     || (i.questionType === 'Number'&& a.answerNum === i.knockOutNumber)
                                     || (i.questionType === 'Date'&& a.answerDate === i.knockOutDate)
                                     || (i.questionType === 'Boolean'&& a.answerBoolean === i.knockOutBoolean)
-                                    || (i.questionType === 'List' && a.answerUUID === i.knockOutList)
+                                    || (i.questionType === 'List' && a.answerUUID?.indexOf(i.knockOutList) >= 0)
                                     || (i.questionType === 'Multiselect Checkbox' && (a.answerUUID?.indexOf(i.knockOutList) >= 0 || a.answerBoolean === i.knockOutBoolean))
-                                    || (i.questionType === 'Radio' && a.answerUUID === i.knockOutList)
+                                    || (i.questionType === 'Radio' && a.answerUUID?.indexOf(i.knockOutList) >= 0)
                                 )
                         )
                     )
@@ -487,7 +495,8 @@
                         `;
 
                     case 'List': {
-                        let opts = q.options?.map( o => `<option value="${o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
+                        let isBlank = (o) => !(o.option?.length > 0);
+                        let opts = q.options?.map( o => `<option value="${isBlank(o) ? '' : o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
 
                         return `
                              <div class="input-field-container">
@@ -803,10 +812,12 @@
                             ans.answerUUID = ans.answerUUID.split(',');
                         }
 
+                        ans.answerUUID = ans.answerUUID.map( i => i.answerUUID );
+
                         ans.answerUUID.forEach( v => {
-                            container.find(`input[data-qid=${qid}][data-value=${v.trim()}]`).attr('checked', true);
-                            container.find(`input[data-qid=${qid}][value=${v.trim()}]`).attr('checked', true);
-                            container.find(`select[data-qid=${qid}]`).val(v.trim());
+                            container.find(`input[data-qid=${qid}][data-value=${(v || '').trim()}]`).attr('checked', true);
+                            container.find(`input[data-qid=${qid}][value=${(v || '').trim()}]`).attr('checked', true);
+                            container.find(`select[data-qid=${qid}]`).val((v || '').trim());
                         });
                     } else if (ans.answerFile) {
                         container.find(`input[data-qid=${qid}]`).val(this._fileBlob(ans.answerFile));

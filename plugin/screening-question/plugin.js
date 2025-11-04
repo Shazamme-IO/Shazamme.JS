@@ -812,8 +812,6 @@
                             ans.answerUUID = ans.answerUUID.split(',');
                         }
 
-                        ans.answerUUID = ans.answerUUID.map( i => i.answerUUID );
-
                         ans.answerUUID.forEach( v => {
                             container.find(`input[data-qid=${qid}][data-value=${(v || '').trim()}]`).attr('checked', true);
                             container.find(`input[data-qid=${qid}][value=${(v || '').trim()}]`).attr('checked', true);

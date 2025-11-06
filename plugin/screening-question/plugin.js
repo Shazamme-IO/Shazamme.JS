@@ -37,6 +37,10 @@
             const answers = () => {
                 let d = [];
 
+                if (!this._screeningTemplateID) {
+                    return undefined;
+                }
+
                 this._recordAnswers();
 
                 for (let i in this._answers) {
@@ -76,6 +80,10 @@
                     });
 
             const knockout = () => {
+                if (!this._screeningTemplateID) {
+                    return true;
+                }
+
                 let ko = answers().values
                     .map( a =>
                         sender._ko.find( i =>
@@ -759,9 +767,6 @@
                     } else if (ans.answerUUID) {
                         if (typeof(ans.answerUUID) === 'string') {
                             ans.answerUUID = ans.answerUUID.split(',');
-                        } else {
-                            ans.answerUUID = ans.answerUUID.map( i => i.answerUUID );
-
                         }
 
                         ans.answerUUID.forEach( v => {

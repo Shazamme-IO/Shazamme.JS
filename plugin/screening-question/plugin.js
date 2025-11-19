@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=3368`)
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1763414001068`)
         .then();
 
     shazamme.plugin = {
@@ -248,12 +248,23 @@
                 }
 
                 let p = (this._pages[page] || [])
-                    .filter( q => !q.parentQuestionID || sender._answers[q.parentQuestionID] );
+                    .filter( q => !q.parentQuestionID);
 
                 let el = p.map( q => sender._questionEl({
                     ...q,
-                    options: q.options?.filter( o => !q.parentQuestionID || sender._answers[q.parentQuestionID].answerUUID?.indexOf(o.parentOptionID) >= 0),
+                    options: q.options,
                 }));
+
+                let child = [];
+
+                (this._pages[page] || [])
+                    .filter( q => sender._answers[q.parentQuestionID] )
+                    .forEach( q => {
+                        let c = child[q.parentQuestionID] || [];
+
+                        c.push(q);
+                        child[q.parentQuestionID] = c;
+                    });
 
                 container
                     .empty()
@@ -262,6 +273,29 @@
                     .css({
                         'padding': '0px',
                     });
+
+                for (let id in child) {
+                    child[id]
+                        .sort( (x, y) => x.sortOrder < y.sortOrder ? 1 : -1 )
+                        .forEach( q => {
+                            q.options
+                                ?.filter( o => sender._answers[q.parentQuestionID].answerUUID?.indexOf(o.parentOptionID) >= 0)
+                                ?.map( o => o.parentOptionID )
+                                ?.filter(shazamme.unique)
+                                ?.forEach( o => {
+                                    container
+                                        .find(`[data-qid=${id}][data-value=${o}]`)
+                                        .parent()
+                                        .after(
+                                            sender._questionEl({
+                                                ...q,
+                                                options: q.options?.filter( opt => opt.parentOptionID === o),
+                                                isChild: true,
+                                            })
+                                        )
+                                })
+                        });
+                }
 
                 container
                     .find('.sq-help-text[collapsible]')
@@ -391,6 +425,11 @@
                 }
 
                 this._restoreAnswers(p.map( q => q.screeningQuestionID ));
+
+                for (let id in child) {
+                    this._restoreAnswers(child[id].map( q => q.screeningQuestionID ));
+                }
+
                 this.pageNumber = page;
             }
 
@@ -402,7 +441,7 @@
                 switch (q.questionType) {
                     case 'Text':
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                                 ${ q.helpText?.length > 0 && `
@@ -420,7 +459,7 @@
 
                     case 'Number':
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 <input type="number" autocomplete="nope" data-qtype="number" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                                 ${ q.helpText?.length > 0 && `
@@ -438,7 +477,7 @@
 
                     case 'Date':
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 <input type="date" autocomplete="nope" data-qtype="date" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                                 ${ q.helpText?.length > 0 && `
@@ -456,7 +495,7 @@
 
                     case 'Boolean':
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                     <p class="sq-boolean-question">
                                         <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}  />
@@ -481,7 +520,7 @@
                         let opts = q.options?.map( o => `<option value="${isBlank(o) ? '' : o.screeningQuestionOptionsID}">${o.label || o.option}</option>`) || [];
 
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 <select data-qtype="list" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>${opts.join('')}</select>
                                 ${ q.helpText?.length > 0 && `
@@ -503,7 +542,7 @@
                         let opts = q.options?.map( o => `<label><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
 
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
@@ -524,7 +563,7 @@
                         let opts = q.options?.map( o => `<label class="sq-question-option"><input type="radio" data-qtype="radio" name="${q.screeningQuestionID}" data-qid="${q.screeningQuestionID}" value="${o.screeningQuestionOptionsID}" ${q.isMandatory ? 'required' : ''} />${o.label || o.option}</label>`) || [];
 
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
@@ -543,7 +582,7 @@
 
                     case 'File':
                         return `
-                             <div class="input-field-container">
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
 
                                 <button class="file" data-qtype="file" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}>

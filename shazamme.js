@@ -1275,15 +1275,15 @@
                 let pageUri = new URL(window.location.href);
 
                 return Promise.resolve({
-                    getButton: () =>
+                    getButton: (redirect) =>
                         $.ajax({
                             url: uri,
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Seek Button',
-                                applicationUri: pageUri.toString(),
+                                applicationUri: redirect || pageUri.toString(),
                                 token: pageUri.searchParams.get('seek-token'),
-                                hirerID: s.seekClientAdvertiserID,
+                                hirerID: s.seekHirerID,
                             }),
                         }),
 

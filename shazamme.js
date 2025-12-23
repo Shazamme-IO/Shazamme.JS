@@ -1088,11 +1088,9 @@
 
         this.script = (src) =>
             new Promise( (res, rej) => {
-                $.getScript(
-                    src,
-                    function() { res() },
-                    function() { rej() }
-                );
+                $.getScript(src)
+                    .done( () => res() )
+                    .fail( () => { console.warn('WARNING: Resource unavailable', src); res(); });
             });
 
         this.style = (src) =>

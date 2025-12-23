@@ -284,7 +284,7 @@
                                 ?.filter(shazamme.unique)
                                 ?.forEach( o => {
                                     container
-                                        .find(`[data-qid=${id}][data-value=${o}]`)
+                                        .find(`[data-qid=${id}][data-value=${o}],[data-qid=${id}][value=${o}]`)
                                         .parent()
                                         .after(
                                             sender._questionEl({

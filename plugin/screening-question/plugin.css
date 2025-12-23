@@ -76,6 +76,8 @@
 }
 
 .input-field-container.field-child {
+    grid-column-start: 1;
+    grid-column-end: 3;
     margin-left: 20px;
 }
 

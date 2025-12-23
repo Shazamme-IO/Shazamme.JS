@@ -790,6 +790,7 @@
                         lastName: name.pop() || '',
                         firstName: name.join(' '),
                         isNew: res.additionalUserInfo.isNewUser,
+                        delete: () => res.user.delete(),
                     });
                 }).catch(err => {
                     console.error(err);
@@ -997,7 +998,7 @@
             } catch {}
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
             || Promise.resolve();
         }
 
@@ -1009,7 +1010,7 @@
             } catch {}
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
             || Promise.resolve();
         }
 

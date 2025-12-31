@@ -790,6 +790,7 @@
                         lastName: name.pop() || '',
                         firstName: name.join(' '),
                         isNew: res.additionalUserInfo.isNewUser,
+                        delete: () => res.user.delete(),
                     });
                 }).catch(err => {
                     console.error(err);
@@ -997,7 +998,7 @@
             } catch {}
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
             || Promise.resolve();
         }
 
@@ -1009,7 +1010,7 @@
             } catch {}
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
             || Promise.resolve();
         }
 
@@ -1272,17 +1273,18 @@
                     ? 'https://shazamme.io/seek/'
                     : 'https://staging.shazamme.io/seek/';
 
-                let uri = new URL(window.location.href);
+                let pageUri = new URL(window.location.href);
 
                 return Promise.resolve({
-                    getButton: () =>
+                    getButton: (redirect) =>
                         $.ajax({
                             url: uri,
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Seek Button',
-                                applicationUri: uri.toString(),
-                                token: uri.searchParams.get('seek-token'),
+                                applicationUri: redirect || pageUri.toString(),
+                                token: pageUri.searchParams.get('seek-token'),
+                                hirerID: s.seekHirerID,
                             }),
                         }),
 
@@ -1292,7 +1294,7 @@
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Seek Profile',
-                                id: uri.searchParams.get('seek-prefill-id'),
+                                id: pageUri.searchParams.get('seek-prefill-id'),
                             }),
                         }),
                 })
@@ -1373,11 +1375,9 @@
 
         this.script = (src) =>
             new Promise( (res, rej) => {
-                $.getScript(
-                    src,
-                    function() { res() },
-                    function() { rej() }
-                );
+                $.getScript(src)
+                    .done( () => { res(); })
+                    .fail( () => { console.warn('WARNING: Resource unavailable', src); res(); });
             });
 
         this.style = (src) =>

@@ -24,6 +24,7 @@
     let _r  = {}
 
     function _init() {
+        const ApiUrl = 'https://shazamme.io';
         const ActionUrl = 'https://shazamme.io/Job-Listing/src/php/actions';
         const RegionalUrl = 'https://shazamme.io/Job-Listing/src/php/regional/actions';
 
@@ -678,6 +679,7 @@
                             })
                         }).then( res => {
                             sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                            sender._site.ApiUrl = 'https://staging.shazamme.io';
                             sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
                             sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
                             sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
@@ -691,47 +693,7 @@
             return this._sp;
         }
 
-        this.fetch = (c) => new Promise( (resolve, reject) => {
-            if (c.useCache && c._cache) {
-                resolve(c._cache);
-            } else if (c.debug) {
-                $.ajax({url: c.endpoint}).then( r => {
-                    if (c.useCache) {
-                        c._cache = r;
-                    }
-
-                    resolve(r);
-                });
-            } else {
-                let fail = () => {
-                    console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
-
-                    $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
-                        if (c.useCache) {
-                            c._cache = r;
-                        }
-
-                        resolve(r);
-                    });
-                }
-
-                dmAPI.getCollection({ collectionName: c.name })
-                    .then(r => {
-                        if (r?.length > 0 || r?.length == 0) {
-                            if (c.useCache && r.length > 0) {
-                                c._cache = r;
-                            }
-
-                            resolve(r);
-                        } else {
-                            fail();
-                        }
-                    })
-                    .catch( () => {
-                        fail();
-                    });
-            }
-        });
+        this.fetch = (c) => c?.isExternal ? this._extFetch(c) : this._dudaFetch(c);
 
         this.submit = (d, regional = true) =>
             this.site().then( s =>
@@ -1554,6 +1516,75 @@
                     })});
                 }).catch( () => Promise.resolve() ),
         ]);
+
+        this._dudaFetch = (c) => new Promise( (resolve, reject) => {
+            if (c.useCache && c._cache) {
+                resolve(c._cache);
+            } else if (c.debug) {
+                $.ajax({url: c.endpoint}).then( r => {
+                    if (c.useCache) {
+                        c._cache = r;
+                    }
+
+                    resolve(r);
+                });
+            } else {
+                let fail = () => {
+                    console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
+
+                    $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                        if (c.useCache) {
+                            c._cache = r;
+                        }
+
+                        resolve(r);
+                    });
+                }
+
+                dmAPI.getCollection({ collectionName: c.name })
+                    .then(r => {
+                        if (r?.length > 0 || r?.length == 0) {
+                            if (c.useCache && r.length > 0) {
+                                c._cache = r;
+                            }
+
+                            resolve(r);
+                        } else {
+                            fail();
+                        }
+                    })
+                    .catch( () => {
+                        fail();
+                    });
+            }
+        });
+
+        this._extFetch = (c) => new Promise( (resolve, reject) => {
+            if (c.useCache && c._cache) {
+                resolve(c._cache);
+            } else {
+                let p = [];
+
+                c.filter && p.push(`filter=${encodeURI(JSON.stringify(c.filter))}`);
+                c.lang && p.push(`lang=${encodeURI(JSON.stringify(c.lang))}`);
+                c.fieldMap && p.push(`field-map=${encodeURI(JSON.stringify(c.fieldMap))}`);
+                c.catchAll && p.push(`catch-all=${encodeURI(JSON.stringify(c.catchAll))}`);
+
+                fetch(`${c.apiUrl || sender._site?.ApiUrl || ApiUrl}${c.path}?${p.join('&')}`).then( r => {
+                    if (r.ok) {
+                        let j = r.json();
+
+                        if (c.useCache) {
+                            c._cache = j;
+                        }
+
+                        resolve(j);
+                    } else {
+                        reject();
+                    }
+                });
+            }
+        });
     }
 
     if (!window[`shazamme-${version}`]) {

@@ -126,6 +126,10 @@
                                         window.location = link;
                                     }
                                 })();
+                            } else if (handle?.redirect?.length > 0) {
+                                let link = editing ? `/site/${dudaAlias}${handle.redirect}?preview=true&insitepreview=true&dm_device=desktop` : handle.redirect;
+
+                                window.location = link;
                             }
                         });
                     });

@@ -217,9 +217,9 @@
                         campaignKeyword = uri.searchParams.get('utm_term');
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
-
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -259,9 +259,9 @@
                         campaignKeyword = uri.searchParams.get('utm_term');
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
-
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;

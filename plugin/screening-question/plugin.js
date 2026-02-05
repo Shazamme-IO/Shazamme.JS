@@ -161,7 +161,9 @@
                         }
 
                         case 'number': {
-                            isOk = isOk && !isNaN(field.val());
+                            let val = field.val();
+
+                            isOk = isOk && val && val.trim().length > 0 && !isNaN(val);
                             break;
                         }
 

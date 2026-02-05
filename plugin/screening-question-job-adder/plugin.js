@@ -100,7 +100,11 @@
                             break;
                         }
 
-                        case 'check-list':
+                        case 'check-list': {
+                            isOk = isOk && container.find(`input[type=checkbox][name=${field.attr('name')}]`).is(':checked');
+                            break;
+                        }
+
                         case 'radio': {
                             isOk = isOk && container.find(`input[type=radio][name=${field.attr('name')}]`).is(':checked');
                             break;

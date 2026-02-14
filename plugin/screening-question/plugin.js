@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.1';
+    const Version = '1.0.2-test';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -187,6 +187,11 @@
             this._maxPage = 0;
             this._answers = [];
             this._screeningTemplateID = undefined;
+
+            if (site?.configuration?.gApiPlacesKey) {
+                shazamme.log('enabling places API');
+                shazamme.gapi(site.configuration.gApiPlacesKey).maps([ 'places' ]).then();
+            }
 
             this._fetchQuestions = () => {
                 site?.loadingDialog()?.appendTo(container);
@@ -388,6 +393,144 @@
                         });
                     });
 
+                if (container.find('[data-qtype=geo]').length > 0) {
+                    const places = new google.maps.places.PlacesService(container.find('[data-rel=places-map]').get(0));
+                    const autocomplete = new google.maps.places.AutocompleteService();
+
+                    container
+                        .find('[data-qtype=geo]')
+                        .on('keyup', function() {
+                            let field = $(this);
+
+
+                            clearTimeout(this._debounce);
+                            field.siblings('[data-prediction]').hide();
+
+                            if (!autocomplete) {
+                                return;
+                            }
+
+                            this._debounce = setTimeout( async () => {
+                                if (field.val().length == 0) {
+                                    field.attr('data-geo-point', '');
+                                    field.attr('data-geo-line1', '');
+                                    field.attr('data-geo-line2', '');
+                                    field.attr('data-geo-city', '');
+                                    field.attr('data-geo-state', '');
+                                    field.attr('data-geo-postal', '');
+                                    field.attr('data-geo-country', '');
+                                    field.attr('data-last-text', '');
+
+                                    return;
+                                }
+
+                                autocomplete.getPlacePredictions({ input: field.val() }, r => {
+                                    const menu = field.siblings('[data-prediction]');
+                                    shazamme.log('got location predictions', r);
+                                    r?.forEach( p => {
+                                        places.getDetails({ placeId: p.place_id, fields: ['geometry', 'address_components' ]}, d => {
+                                            shazamme.log('got description', d);
+
+                                            let number = '';
+                                            let line1 = '';
+                                            let line2 = '';
+                                            let city = '';
+                                            let state = '';
+                                            let postal = '';
+                                            let postalSuffix = '';
+                                            let country = '';
+
+                                            d.address_components.forEach( i => {
+                                                if (i.types.indexOf('street_number') >= 0) {
+                                                    number = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('route') >= 0) {
+                                                    line1 = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('subpremise') >= 0) {
+                                                    line2 = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('locality') >= 0) {
+                                                    city = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('administrative_area_level_1') >= 0) {
+                                                    state = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('postal_code') >= 0) {
+                                                    postal = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('postal_code_suffix') >= 0) {
+                                                    postalSuffix = i.short_name;
+                                                }
+
+                                                if (i.types.indexOf('country') >= 0) {
+                                                    country = i.short_name;
+                                                }
+                                            });
+
+                                            if (postalSuffix.length > 0) {
+                                                postal += '-' + postalSuffix;
+                                            }
+
+                                            menu.append(`<a href="javascript: void(0);" class="result-text"
+                                                data-geo-point="${d.geometry.location.lat()},${d.geometry.location.lng()}"
+                                                data-geo-line1="${number} ${line1}"
+                                                data-geo-line2="${line2}"
+                                                data-geo-city="${city}"
+                                                data-geo-state="${state}"
+                                                data-geo-postal="${postal}"
+                                                data-geo-country="${country}"
+                                                >${p.description}</a>`);
+                                        });
+                                    });
+
+                                    if (r?.length > 0) {
+                                        menu
+                                            .empty()
+                                            .append(`<a href="javascript: void(0);" class="result-text close" data-value="">x</a>`)
+                                            .show()
+                                            .on('click', '[data-geo-point]', function() {
+                                                let opt = $(this);
+                                                let value = opt.attr('data-geo-point');
+
+                                                field.val(opt.text());
+                                                opt.parents('[data-prediction]').hide();
+
+                                                if (value.length > 0) {
+                                                    field.attr('data-geo-point', opt.attr('data-geo-point'));
+                                                    field.attr('data-geo-line1', opt.attr('data-geo-line1'));
+                                                    field.attr('data-geo-line2', opt.attr('data-geo-line2'));
+                                                    field.attr('data-geo-city', opt.attr('data-geo-city'));
+                                                    field.attr('data-geo-state', opt.attr('data-geo-state'));
+                                                    field.attr('data-geo-postal', opt.attr('data-geo-postal'));
+                                                    field.attr('data-geo-country', opt.attr('data-geo-country'));
+
+                                                    field.attr('data-last-text', opt.text());
+                                                }
+                                            });
+                                    }
+                                });
+                            }, 500);
+                        })
+                        .on('blur', function() {
+                            let field = $(this);
+
+                            setTimeout( () => {
+                                field
+                                    .val(field.attr('data-last-text'))
+                                    .siblings('[data-prediction]')
+                                    .hide();
+                            }, 300);
+                        });
+                }
+
+
                 if (this._pages[page]?.find( q => q.parentQuestionID )) {
                     container
                         .find('input, select')
@@ -443,7 +586,7 @@
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
+                                <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="off" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -461,7 +604,7 @@
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                <textarea class="sq-input-text-block-style" type="text" maxlength=${q.length || -1} autocomplete="nope" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}></textarea>
+                                <textarea class="sq-input-text-block-style" type="text" maxlength=${q.length || -1} autocomplete="off" data-qtype="text" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}></textarea>
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -479,7 +622,7 @@
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                <input type="number" autocomplete="nope" data-qtype="number" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
+                                <input type="number" autocomplete="off" data-qtype="number" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -497,7 +640,7 @@
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                <input type="date" autocomplete="nope" data-qtype="date" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
+                                <input type="date" autocomplete="off" data-qtype="date" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -516,7 +659,7 @@
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
                                 <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
                                     <p class="sq-boolean-question">
-                                        <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}  />
+                                        <input type="checkbox" autocomplete="off" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}  />
                                         ${q.question}
                                     </p>
                                 </label>
@@ -577,7 +720,7 @@
                     }
 
                     case 'Multiselect Checkbox': {
-                        let opts = q.options?.map( o => `<label class="sq-question-option"><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
+                        let opts = q.options?.map( o => `<label class="sq-question-option"><input type="checkbox" autocomplete="off" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
 
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
@@ -629,6 +772,26 @@
 
                                 <div class="sq-file-list" data-rel="file-list"></div>
 
+                                ${ q.helpText?.length > 0 && `
+                                <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
+                                    <p class="text-main">${q.helpText || ''}</p>
+                                    <div class="section-read-more" style="text-align: ${config.readMoreAlign}">
+                                        <a href="javascript: void(0);" class="button-show-more" data-rel="button-show-more">${config.showMoreHelpText}</a>
+                                    </div>
+                                </div>
+                                `
+                                || ''
+                                }
+                            </div>
+                        `;
+
+                    case 'Google Address':
+                        return `
+                             <div class="input-field-container${q.isChild && ' field-child' || ''}">
+                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
+                                <input class="sq-input-text-style" type="text" maxlength=${q.length || -1} autocomplete="off" data-qtype="geo" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''} />
+                                <div class="prediction-result" data-prediction></div>
+                                <div data-rel="places-map" style="display:none;"></div>
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
                                     <p class="text-main">${q.helpText || ''}</p>
@@ -820,6 +983,49 @@
                             }
                             break;
                         }
+
+                        case 'geo': {
+                            if (field.val()) {
+                                let geo = (field.attr('data-geo-point') || '').split(',');
+                                let address = [];
+
+                                field.attr('data-geo-line1')   && address.push(field.attr('data-geo-line1'));
+                                field.attr('data-geo-line2')   && address.push(field.attr('data-geo-line2'));
+                                field.attr('data-geo-city')    && address.push(field.attr('data-geo-city'));
+                                field.attr('data-geo-state')   && address.push(field.attr('data-geo-state'));
+                                field.attr('data-geo-postal')  && address.push(field.attr('data-geo-postal'));
+                                field.attr('data-geo-country') && address.push(field.attr('data-geo-country'));
+
+                                let ans = {
+                                    geoPoints: {
+                                        type: 'Point',
+                                        coordinates: [
+                                            parseFloat(geo[0]) || 0,
+                                            parseFloat(geo[1]) || 0,
+                                        ]
+                                    },
+
+                                    line1: field.attr('data-geo-line1'),
+                                    unit: field.attr('data-geo-line2'),
+                                    city: field.attr('data-geo-city'),
+                                    province: field.attr('data-geo-state'),
+                                    postalCode: field.attr('data-geo-postal'),
+                                    country: field.attr('data-geo-country'),
+                                    fullAddress: address.join(','),
+                                }
+
+                                sender._answers[field.attr('data-qid')] = {
+                                    screeningAnswerID: sender._answers[field.attr('data-qid')]?.screeningAnswerID,
+                                    screeningQuestionID: field.attr('data-qid'),
+                                    answerText: JSON.stringify(ans),
+                                    screeningTemplateID: sender._screeningTemplateID,
+                                };
+                            } else {
+                                delete sender._answers[field.attr('data-qid')];
+                            }
+
+                            break;
+                        }
                     }
                 });
             }
@@ -860,6 +1066,24 @@
                         container.find(`input[data-qid=${qid}]`).val(this._fileBlob(ans.answerFile));
                     }
                 }
+
+                container.find('[data-qtype=geo]').each( f => {
+                    let field = $(f);
+
+                    if (field.val()?.length > 0) {
+                        let value = JSON.parse(field.val());
+
+                        field.val(value.fullAddress || '');
+
+                        field.attr('data-geo-point', `${value.geoPoints.coordinates.geo[0]}`,`${value.geoPoints.coordinates.geo[1]}`);
+                        field.attr('data-geo-line1', values.line1);
+                        field.attr('data-geo-line2', values.unit);
+                        field.attr('data-geo-city', values.city);
+                        field.attr('data-geo-state', values.province);
+                        field.attr('data-geo-postal', values.postalCode);
+                        field.attr('data-geo-country', values.country);
+                    }
+                });
             }
 
             this._readFile = (file) => {

@@ -1560,8 +1560,12 @@
         });
 
         this._extFetch = (c) => new Promise( (resolve, reject) => {
-            if (c.useCache && c._cache) {
-                resolve(c._cache);
+            let path = `${c.apiUrl || sender._site?.ApiUrl || ApiUrl}${c.path}?${p.join('&')}`;
+            let key = `fetch:${btoa(path)}`;
+            let cached = sender.bag(key);
+
+            if (c.useCache && cached) {
+                resolve(cached);
             } else {
                 let p = [];
 
@@ -1570,12 +1574,12 @@
                 c.fieldMap && p.push(`field-map=${encodeURI(JSON.stringify(c.fieldMap))}`);
                 c.catchAll && p.push(`catch-all=${encodeURI(JSON.stringify(c.catchAll))}`);
 
-                fetch(`${c.apiUrl || sender._site?.ApiUrl || ApiUrl}${c.path}?${p.join('&')}`).then( r => {
+                fetch(path).then( r => {
                     if (r.ok) {
                         let j = r.json();
 
                         if (c.useCache) {
-                            c._cache = j;
+                            sender.bag(key, j);
                         }
 
                         resolve(j);

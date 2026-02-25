@@ -218,8 +218,9 @@
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
 
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || sessionStorage.referralSource || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -260,8 +261,9 @@
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
 
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || sessionStorage.referralSource || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -313,6 +315,12 @@
                 }
 
                 clarity('identify', s);
+            }
+
+            if (window.location.search?.search('preview=true') >= 0) {
+                sender.site().then( s => {
+                    console.info('Editing Shazamme site:', s.siteID);
+                });
             }
 
             return _ready;

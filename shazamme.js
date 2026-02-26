@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.2';
+    const version = '1.0.3';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -1568,6 +1568,11 @@
         });
 
         this._extFetch = (c) => new Promise( (resolve, reject) => {
+            let p = [];
+
+            c.lang && p.push(`lang=${encodeURI(c.lang)}`);
+            c.fieldMap && p.push(`field-map=${encodeURI(c.fieldMap)}`);
+
             let path = `${c.apiUrl || sender._site?.ApiUrl || ApiUrl}${c.path}?${p.join('&')}`;
             let key = `fetch:${btoa(path)}`;
             let cached = sender.bag(key);
@@ -1575,22 +1580,58 @@
             if (c.useCache && cached) {
                 resolve(cached);
             } else {
-                let p = [];
-
-                c.filter && p.push(`filter=${encodeURI(JSON.stringify(c.filter))}`);
-                c.lang && p.push(`lang=${encodeURI(JSON.stringify(c.lang))}`);
-                c.fieldMap && p.push(`field-map=${encodeURI(JSON.stringify(c.fieldMap))}`);
-                c.catchAll && p.push(`catch-all=${encodeURI(JSON.stringify(c.catchAll))}`);
-
                 fetch(path).then( r => {
                     if (r.ok) {
-                        let j = r.json();
+                        switch (r.headers.get('content-type')) {
+                            case 'application/json': {
+                                let j = r.json();
 
-                        if (c.useCache) {
-                            sender.bag(key, j);
+                                if (c.useCache) {
+                                    sender.bag(key, j);
+                                }
+
+                                resolve(j);
+
+                                break;
+                            }
+
+                            case 'application/gzip': {
+                                r.blob().then( b => {
+                                    let gz = new DecompressionStream('gzip');
+                                    let s = b.stream().pipeThrough(gz);
+                                    let buffer = s.pipeThrough(new TextDecoderStream()).getReader();
+                                    let j = [];
+
+                                    let read = () => {
+                                        buffer.read().then( ({done, value}) => {
+                                            if (done) {
+                                                let json = JSON.parse(j.join('')).filter( i => i.data );
+
+                                                if (c.useCache) {
+                                                    sender.bag(key, json);
+                                                }
+
+                                                resolve(json);
+                                            } else {
+                                                j.push(value);
+                                                read();
+                                            }
+                                        })
+                                    }
+
+                                    read();
+                                });
+
+                                break;
+                            }
+
+                            default: {
+                                reject();
+                                break;
+                            }
                         }
 
-                        resolve(j);
+
                     } else {
                         reject();
                     }

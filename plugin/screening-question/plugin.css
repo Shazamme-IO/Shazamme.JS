@@ -75,6 +75,10 @@
     height: 80px;
 }
 
+.input-field-container.field-child {
+    margin-left: 20px;
+}
+
 .sq-help-text {
     font-size: 12px;
     text-align: left;

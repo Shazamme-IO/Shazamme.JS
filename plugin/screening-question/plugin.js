@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1763414001068`)
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1773122747925`)
         .then();
 
     shazamme.plugin = {
@@ -921,6 +921,8 @@
                 }
 
                 w.config().then( c => {
+                    let configured = sender._ko.every( q => c?.knockout?.find( i => i.screeningQuestionID === q.screeningQuestionID && (i.alert || i.redirect)) );
+
                     dialog.find('[data-rel=dialog-content]')
                         .empty()
                         .append(sender._ko.map( q => el({
@@ -932,7 +934,8 @@
 
                     $('<button />')
                         .text('Edit Knockout Handling')
-                        .addClass('button-editor')
+                        .addClass(['button-editor', configured ? '' : 'warn'])
+                        .attr('data-rel', 'knockout-toggle')
                         .on('click', function() {
                             dialog.toggle();
                         })
@@ -984,6 +987,12 @@
                             )
                             .then( () => {
                                 c.knockout = knockout;
+
+                                if (sender._ko.every( q => c?.knockout?.find( i => i.screeningQuestionID === q.screeningQuestionID && (i.alert || i.redirect)) )) {
+                                    container.find('[data-rel=knockout-toggle]').removeClass('warn');
+                                } else {
+                                    container.find('[data-rel=knockout-toggle]').addClass('warn');
+                                }
                             });
 
                         dialog.toggle();

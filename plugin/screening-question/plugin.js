@@ -6,7 +6,7 @@
     }
 
     shazamme
-        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1763538841092`)
+        .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1775795897238`)
         .then();
 
     shazamme.plugin = {
@@ -520,11 +520,9 @@
                     case 'Boolean':
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">
-                                <label class="text ${q.isMandatory ? 'required' : ''}">${q.question}</label>
-                                    <p class="sq-boolean-question">
-                                        <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}  />
-                                        ${q.question}
-                                    </p>
+                                <label class="text ${q.isMandatory ? 'required' : ''}">
+                                    <input type="checkbox" autocomplete="nope" data-qtype="bool" data-qid="${q.screeningQuestionID}" ${q.isMandatory ? 'required' : ''}  />
+                                    ${q.question}
                                 </label>
                                 ${ q.helpText?.length > 0 && `
                                 <div class="sq-help-text" ${q.isHelpTextCollapse ? 'collapsible' : ''}>
@@ -970,6 +968,8 @@
                 }
 
                 w.config().then( c => {
+                    let configured = sender._ko.every( q => c?.knockout?.find( i => i.screeningQuestionID === q.screeningQuestionID && (i.alert || i.redirect)) );
+
                     dialog.find('[data-rel=dialog-content]')
                         .empty()
                         .append(sender._ko.map( q => el({
@@ -979,13 +979,16 @@
 
                     container.find('.button-editor').remove();
 
-                    $('<button />')
-                        .text('Edit Knockout Handling')
-                        .addClass('button-editor')
-                        .on('click', function() {
-                            dialog.toggle();
-                        })
-                        .prependTo(container);
+                    if (semder._ko.length > 0) {
+                        $('<button />')
+                            .text('Edit Knockout Handling')
+                            .addClass(['button-editor', configured ? '' : 'required'])
+                            .attr('data-rel', 'knockout-toggle')
+                            .on('click', function() {
+                                dialog.toggle();
+                            })
+                            .prependTo(container);
+                    }
 
                     const toggleEnable = (e) => {
                         let toggle = $(e.target);
@@ -1033,6 +1036,12 @@
                             )
                             .then( () => {
                                 c.knockout = knockout;
+
+                                if (sender._ko.every( q => c?.knockout?.find( i => i.screeningQuestionID === q.screeningQuestionID && (i.alert || i.redirect)) )) {
+                                    container.find('[data-rel=knockout-toggle]').removeClass('required');
+                                } else {
+                                    container.find('[data-rel=knockout-toggle]').addClass('required');
+                                }
                             });
 
                         dialog.toggle();

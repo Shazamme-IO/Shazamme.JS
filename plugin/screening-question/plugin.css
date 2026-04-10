@@ -201,6 +201,12 @@
     cursor: default;
 } 
 
+.button-editor.required {
+    color: red;
+    font-weight: 800;
+    font-size: 0.75em;
+}
+
 .dialog-knockout {
     display: none;
     position: fixed;

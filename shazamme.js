@@ -1540,30 +1540,52 @@
                 let fail = () => {
                     console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
 
-                    $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
-                        if (c.useCache) {
-                            c._cache = r;
-                        }
-
-                        resolve(r);
-                    });
-                }
-
-                dmAPI.getCollection({ collectionName: c.name })
-                    .then(r => {
-                        if (r?.length > 0 || r?.length == 0) {
-                            if (c.useCache && r.length > 0) {
+                    if (c.action) {
+                        $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                            if (c.useCache) {
                                 c._cache = r;
                             }
 
                             resolve(r);
-                        } else {
-                            fail();
-                        }
-                    })
-                    .catch( () => {
-                        fail();
-                    });
+                        });
+                    } else {
+                        resolve([]);
+                    }
+                }
+
+                dmAPI.loadCollectionsAPI().then( api => {
+                    let out = [];
+
+                    let fetch = (page) => {
+                        api
+                            .data(c.name)
+                            .pageNumber(page)
+                            .get()
+                            .then( resp => {
+                                if (resp?.values?.length > 0) {
+                                    out.push(...resp.values);
+
+                                    if (resp.page.totalPages > ++page) {
+                                        fetch(page);
+                                    } else {
+                                        if (resp.page.totalPages > 3) {
+                                            console.warn('WARNING: This site has a high number of records.', c.name, resp.page.totalPages);
+                                        }
+
+                                        resolve(out);
+                                    }
+                                } else {
+                                    fail();
+                                }
+                            },
+
+                            () => {
+                                fail();
+                            });
+                    }
+
+                    fetch(0);
+                });
             }
         });
 

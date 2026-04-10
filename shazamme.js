@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.2';
+    const version = '1.0.3';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -24,6 +24,7 @@
     let _r  = {}
 
     function _init() {
+        const ApiUrl = 'https://shazamme.io';
         const ActionUrl = 'https://shazamme.io/Job-Listing/src/php/actions';
         const RegionalUrl = 'https://shazamme.io/Job-Listing/src/php/regional/actions';
 
@@ -218,8 +219,9 @@
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
 
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || sessionStorage.referralSource || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -260,8 +262,9 @@
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
 
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || sessionStorage.referralSource || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -313,6 +316,12 @@
                 }
 
                 clarity('identify', s);
+            }
+
+            if (window.location.search?.search('preview=true') >= 0) {
+                sender.site().then( s => {
+                    console.info('Editing Shazamme site:', s.siteID);
+                });
             }
 
             return _ready;
@@ -678,6 +687,7 @@
                             })
                         }).then( res => {
                             sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                            sender._site.ApiUrl = 'https://staging.shazamme.io';
                             sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
                             sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
                             sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
@@ -691,47 +701,7 @@
             return this._sp;
         }
 
-        this.fetch = (c) => new Promise( (resolve, reject) => {
-            if (c.useCache && c._cache) {
-                resolve(c._cache);
-            } else if (c.debug) {
-                $.ajax({url: c.endpoint}).then( r => {
-                    if (c.useCache) {
-                        c._cache = r;
-                    }
-
-                    resolve(r);
-                });
-            } else {
-                let fail = () => {
-                    console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
-
-                    $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
-                        if (c.useCache) {
-                            c._cache = r;
-                        }
-
-                        resolve(r);
-                    });
-                }
-
-                dmAPI.getCollection({ collectionName: c.name })
-                    .then(r => {
-                        if (r?.length > 0 || r?.length == 0) {
-                            if (c.useCache && r.length > 0) {
-                                c._cache = r;
-                            }
-
-                            resolve(r);
-                        } else {
-                            fail();
-                        }
-                    })
-                    .catch( () => {
-                        fail();
-                    });
-            }
-        });
+        this.fetch = (c) => c?.isExternal ? this._extFetch(c) : this._dudaFetch(c);
 
         this.submit = (d, regional = true) =>
             this.site().then( s =>
@@ -1554,6 +1524,142 @@
                     })});
                 }).catch( () => Promise.resolve() ),
         ]);
+
+        this._dudaFetch = (c) => new Promise( (resolve, reject) => {
+            if (c.useCache && c._cache) {
+                resolve(c._cache);
+            } else if (c.debug) {
+                $.ajax({url: c.endpoint}).then( r => {
+                    if (c.useCache) {
+                        c._cache = r;
+                    }
+
+                    resolve(r);
+                });
+            } else {
+                let fail = () => {
+                    console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
+
+                    if (c.action) {
+                        $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                            if (c.useCache) {
+                                c._cache = r;
+                            }
+
+                            resolve(r);
+                        });
+                    } else {
+                        resolve([]);
+                    }
+                }
+
+                dmAPI.loadCollectionsAPI().then( api => {
+                    let out = [];
+
+                    let fetch = (page) => {
+                        api
+                            .data(c.name)
+                            .pageNumber(page)
+                            .get()
+                            .then( resp => {
+                                if (resp?.values?.length > 0) {
+                                    out.push(...resp.values);
+
+                                    if (resp.page.totalPages > ++page) {
+                                        fetch(page);
+                                    } else {
+                                        if (resp.page.totalPages > 3) {
+                                            console.warn('WARNING: This site has a high number of records.', c.name, resp.page.totalPages);
+                                        }
+
+                                        resolve(out);
+                                    }
+                                } else {
+                                    fail();
+                                }
+                            },
+
+                            () => {
+                                fail();
+                            });
+                    }
+
+                    fetch(0);
+                });
+            }
+        });
+
+        this._extFetch = (c) => new Promise( (resolve, reject) => {
+            let p = [];
+
+            c.lang && p.push(`lang=${encodeURI(c.lang)}`);
+            c.fieldMap && p.push(`field-map=${encodeURI(c.fieldMap)}`);
+
+            let path = `${c.apiUrl || sender._site?.ApiUrl || ApiUrl}${c.path}?${p.join('&')}`;
+            let key = `fetch:${btoa(path)}`;
+            let cached = sender.bag(key);
+
+            if (c.useCache && cached) {
+                resolve(cached);
+            } else {
+                fetch(path).then( r => {
+                    if (r.ok) {
+                        switch (r.headers.get('content-type')) {
+                            case 'application/json': {
+                                let j = r.json();
+
+                                if (c.useCache) {
+                                    sender.bag(key, j);
+                                }
+
+                                resolve(j);
+
+                                break;
+                            }
+
+                            case 'application/gzip': {
+                                r.blob().then( b => {
+                                    let gz = new DecompressionStream('gzip');
+                                    let s = b.stream().pipeThrough(gz);
+                                    let buffer = s.pipeThrough(new TextDecoderStream()).getReader();
+                                    let j = [];
+
+                                    let read = () => {
+                                        buffer.read().then( ({done, value}) => {
+                                            if (done) {
+                                                let json = JSON.parse(j.join('')).filter( i => i.data );
+
+                                                if (c.useCache) {
+                                                    sender.bag(key, json);
+                                                }
+
+                                                resolve(json);
+                                            } else {
+                                                j.push(value);
+                                                read();
+                                            }
+                                        })
+                                    }
+
+                                    read();
+                                });
+
+                                break;
+                            }
+
+                            default: {
+                                reject();
+                                break;
+                            }
+                        }
+
+
+                    } else {
+                        reject();
+                    }
+                });
+            }
+        });
     }
 
     if (!window[`shazamme-${version}`]) {

@@ -1491,32 +1491,27 @@
 
             Promise
                 .allSettled([
-                    $.get(`${host.resources}/js/site/${sid}/shazamme.json`),
-                    $.get(`${host.resources}/js/site/${sid}/${p}/shazamme.json`),
+                    fetch(`${host.resources}/js/site/${sid}/shazamme.json`),
+                    fetch(`${host.resources}/js/site/${sid}/${p}/shazamme.json`),
                 ])
+                .then( r => Promise.all(r.map( i => i.value.ok && i.value.json() || Promise.resolve({}) )) )
                 .then( r => {
                     let c = {};
 
                     r.forEach( j => {
-                        for (let w in j.value?.config) {
-                            c[w] = {
-                                ...c[w],
-                                ...j.value?.config[w],
-                            }
+                        for (let w in j?.config) {
+                            c[w] = [].concat(c[w] || [], j.config[w]);
                         }
 
-                        for (let w in j.value?.run) {
-                            _r[w] = [
-                                ..._r[w],
-                                ...j.value?.run[w],
-                            ]
+                        for (let w in j?.run) {
+                            _r[w] = [].concat(_r[w] || [], j?.run[w])
                         }
 
-                        for (let w in j.value?.trace) {
+                        for (let w in j?.trace) {
                             _tr[w] = _tr[w] || {}
 
-                            for (let l in j.value.trace[w]) {
-                                _tr[w][l] = Array.concat(j.value.trace[w][l], _tr[w][l] || [])
+                            for (let l in j.trace[w]) {
+                                _tr[w][l] = [].concat(j.trace[w][l], _tr[w][l] || [])
                             }
                         }
                     });

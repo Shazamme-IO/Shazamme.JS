@@ -1600,64 +1600,72 @@
             let cached = sender.bag(key);
 
             if (c.useCache && cached) {
-                resolve(cached);
+                if (cached.then) {
+                    cached.then( r => resolve(r) );
+                } else {
+                    resolve(cached);
+                }
             } else {
-                fetch(path).then( r => {
-                    if (r.ok) {
-                        switch (r.headers.get('content-type')) {
-                            case 'application/json': {
-                                let j = r.json();
+                sender.bag(key, new Promise( (res, rej) => {
+                    fetch(path).then( r => {
+                        if (r.ok) {
+                            switch (r.headers.get('content-type')) {
+                                case 'application/json': {
+                                    let j = r.json();
 
-                                if (c.useCache) {
-                                    sender.bag(key, j);
-                                }
-
-                                resolve(j);
-
-                                break;
-                            }
-
-                            case 'application/gzip': {
-                                r.blob().then( b => {
-                                    let gz = new DecompressionStream('gzip');
-                                    let s = b.stream().pipeThrough(gz);
-                                    let buffer = s.pipeThrough(new TextDecoderStream()).getReader();
-                                    let j = [];
-
-                                    let read = () => {
-                                        buffer.read().then( ({done, value}) => {
-                                            if (done) {
-                                                let json = JSON.parse(j.join('')).filter( i => i.data );
-
-                                                if (c.useCache) {
-                                                    sender.bag(key, json);
-                                                }
-
-                                                resolve(json);
-                                            } else {
-                                                j.push(value);
-                                                read();
-                                            }
-                                        })
+                                    if (c.useCache) {
+                                        sender.bag(key, j);
                                     }
 
-                                    read();
-                                });
+                                    resolve(j);
+                                    res(j);
 
-                                break;
-                            }
+                                    break;
+                                }
 
-                            default: {
-                                reject();
-                                break;
+                                case 'application/gzip': {
+                                    r.blob().then( b => {
+                                        let gz = new DecompressionStream('gzip');
+                                        let s = b.stream().pipeThrough(gz);
+                                        let buffer = s.pipeThrough(new TextDecoderStream()).getReader();
+                                        let j = [];
+
+                                        let read = () => {
+                                            buffer.read().then( ({done, value}) => {
+                                                if (done) {
+                                                    let json = JSON.parse(j.join('')).filter( i => i.data );
+
+                                                    if (c.useCache) {
+                                                        sender.bag(key, json);
+                                                    }
+
+                                                    resolve(json);
+                                                    res(json);
+                                                } else {
+                                                    j.push(value);
+                                                    read();
+                                                }
+                                            })
+                                        }
+
+                                        read();
+                                    });
+
+                                    break;
+                                }
+
+                                default: {
+                                    reject();
+                                    rej();
+                                    break;
+                                }
                             }
+                        } else {
+                            reject();
+                            rej();
                         }
-
-
-                    } else {
-                        reject();
-                    }
-                });
+                    });
+                }));
             }
         });
     }

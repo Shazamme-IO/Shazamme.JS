@@ -218,8 +218,9 @@
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
 
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || sessionStorage.referralSource || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -260,8 +261,9 @@
                         campaignName = uri.searchParams.get('utm_campaign');
                         campaignContent = uri.searchParams.get('utm_content');
 
-                        sessionStorage.referralSource = referrer || uri.hostname;
                     }
+
+                    sessionStorage.referralSource = referrer || sessionStorage.referralSource || uri.hostname;
 
                     if (campaignMedium?.length > 0) sessionStorage.referralMedium = campaignMedium;
                     if (campaignKeyword?.length > 0) sessionStorage.referralTerm = campaignKeyword;
@@ -313,6 +315,12 @@
                 }
 
                 clarity('identify', s);
+            }
+
+            if (window.location.search?.search('preview=true') >= 0) {
+                sender.site().then( s => {
+                    console.info('Editing Shazamme site:', s.siteID);
+                });
             }
 
             return _ready;
@@ -670,7 +678,7 @@
                         }
 
                         $.ajax({
-                            url: 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions',
+                            url: 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions',
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Site ID',
@@ -678,9 +686,9 @@
                             })
                         }).then( res => {
                             sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
-                            sender._site.ActionUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/actions';
-                            sender._site.RegionalUrl = 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/regional/actions';
-                            sender._site.documentUri = 'https://staging.shazamme.salsa.hosting/candidate-document/';
+                            sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
+                            sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
+                            sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
 
                             resolve(sender._site);
                         });
@@ -717,8 +725,8 @@
 
                 dmAPI.getCollection({ collectionName: c.name })
                     .then(r => {
-                        if (r?.length > 0) {
-                            if (c.useCache) {
+                        if (r?.length > 0 || r?.length == 0) {
+                            if (c.useCache && r.length > 0) {
                                 c._cache = r;
                             }
 
@@ -790,6 +798,7 @@
                         lastName: name.pop() || '',
                         firstName: name.join(' '),
                         isNew: res.additionalUserInfo.isNewUser,
+                        delete: () => res.user.delete(),
                     });
                 }).catch(err => {
                     console.error(err);
@@ -997,7 +1006,7 @@
             } catch {}
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
             || Promise.resolve();
         }
 
@@ -1009,7 +1018,7 @@
             } catch {}
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID))
+            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
             || Promise.resolve();
         }
 
@@ -1197,20 +1206,38 @@
             });
         }
 
-        this.quickRegister = (email) =>
-            email?.length === 0 && Promise.reject()
+        this.quickRegister = (email) => {
+            let cid = sender.uuid();
+
+            return email?.length === 0 && Promise.reject()
                 || sender.firebase().validateEmail(email)
-                    .then( () => sender.site() )
-                    .then( s => sender.submit({
-                        action: 'Register Candidate',
-                        eMail: email,
-                        firstName: ' ',
-                        isActive: true,
-                        isValidated: false,
-                        isSubscribed: false,
-                        dudaSiteID: s.dudaSiteID,
-                    }))
-                    .then( r => Promise.resolve(r?.response?.item || r?.response?.items?.at(0)) )
+                    .then( () => sender.site() ).then( s => {
+                        return sender.submit({
+                            action: 'Register Candidate',
+                            eMail: email,
+                            firstName: ' ',
+                            isActive: true,
+                            isValidated: false,
+                            isSubscribed: false,
+                            dudaSiteID: s.dudaSiteID,
+                            candidateID: cid,
+                        }).then( r => Promise.resolve(
+                            r?.response?.item
+                            || r?.response?.items?.at(0)
+                            || {
+
+                                siteID: s.siteID,
+                                eMail: email,
+                                firstName: " ",
+                                isActive: true,
+                                isSubscribed: false,
+                                isValidated: false,
+                                candidateID: cid,
+                            }
+                            )
+                        )
+                    });
+        }
 
         this.endSession = () => {
             [
@@ -1231,7 +1258,7 @@
             sender.site().then( s => {
                 const uri = s?.isLive
                     ? 'https://shazamme.io/Job-Listing/src/php/client/actions'
-                    : 'https://staging.shazamme.salsa.hosting/Job-Listing/src/php/client/actions';
+                    : 'https://staging.shazamme.io/Job-Listing/src/php/client/actions';
 
                 return Promise.resolve({
                     submit: (d) =>
@@ -1245,6 +1272,39 @@
                         ...c,
                         actionUrl: uri,
                     }),
+                })
+            });
+
+        this.seek = () =>
+            sender.site().then( s => {
+                const uri = s?.isLive
+                    ? 'https://shazamme.io/seek/'
+                    : 'https://staging.shazamme.io/seek/';
+
+                let pageUri = new URL(window.location.href);
+
+                return Promise.resolve({
+                    getButton: (redirect) =>
+                        $.ajax({
+                            url: uri,
+                            type: 'POST',
+                            data: JSON.stringify({
+                                action: 'Get Seek Button',
+                                applicationUri: redirect || pageUri.toString(),
+                                token: pageUri.searchParams.get('seek-token'),
+                                hirerID: s.seekHirerID,
+                            }),
+                        }),
+
+                    getProfile: () =>
+                        $.ajax({
+                            url: uri,
+                            type: 'POST',
+                            data: JSON.stringify({
+                                action: 'Get Seek Profile',
+                                id: pageUri.searchParams.get('seek-prefill-id'),
+                            }),
+                        }),
                 })
             });
 
@@ -1323,11 +1383,9 @@
 
         this.script = (src) =>
             new Promise( (res, rej) => {
-                $.getScript(
-                    src,
-                    function() { res() },
-                    function() { rej() }
-                );
+                $.getScript(src)
+                    .done( () => { res(); })
+                    .fail( () => { console.warn('WARNING: Resource unavailable', src); res(); });
             });
 
         this.style = (src) =>

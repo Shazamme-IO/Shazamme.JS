@@ -1078,8 +1078,8 @@
                 return Promise.resolve();
             }, () => Promise.resolve() )
 
-        this.auth = (uname, uid, isOAuth = false) => {
-            return sender.site().then( s =>
+        this.auth = (uname, uid, isOAuth = false) =>
+            sender.site().then( s =>
                 sender.submit({
                     action: "Verify User",
                     siteID: s.siteID,
@@ -1108,37 +1108,59 @@
                             .filter( (v, i, self) => self.indexOf(v) === i ),
                     }
 
-                    localStorage._s = btoa(unescape(encodeURIComponent(JSON.stringify(sender._session))));
-
-                    return sender._userRoles(sender._session).then( r => {
-                        r?.forEach( x => {
-                            if (x) {
-                                sender._session = {
-                                    ...sender._session,
-                                    ...x
-                                }
+                    return Promise.resolve(sender._session);
+                }).then( s => sender._userRoles(s).then( r => {
+                    r?.forEach( x => {
+                        if (x) {
+                            s = {
+                                ...s,
+                                ...x,
                             }
-                        });
-
-                        let c = sender._session.candidate;
-
-                        if (c) {
-                            localStorage.vinylResponse = JSON.stringify({response: {
-                                ...c,
-                                photo: null,
-                                photoFileName: null,
-                                cVFileContent: null,
-                                cVFileName: null,
-                                coverLetterContent: null,
-                                coverLetterFileName: null,
-                            }});
                         }
-
-                        return Promise.resolve({...sender._session});
                     });
+
+                    return Promise.resolve(s);
+                })).then( s => {
+                    let c = s.candidate;
+
+                    if (c) {
+                        localStorage.vinylResponse = JSON.stringify({response: {
+                            ...c,
+                            photo: null,
+                            photoFileName: null,
+                            cVFileContent: null,
+                            cVFileName: null,
+                            coverLetterContent: null,
+                            coverLetterFileName: null,
+                        }});
+
+
+                        return sender.submit({
+                            action: 'Get Candidate Documents',
+                            candidateID: c.candidateID,
+                            uid: s.firebaseUserID,
+                        }).then( r => {
+                            let f = r?.response?.item;
+
+                            if (f) {
+                                c.cVFileContent = f.cVFileContent;
+                                c.cVFileName = f.cVFileName;
+                                c.coverLetterContent = f.coverLetterFile;
+                                c.coverLetterFileName = f.coverLetterFileName;
+                                c.photo = f.photo;
+                            }
+
+                            return Promise.resolve(s);
+                        }).catch( () => Promise.resolve(s) );
+                    }
+
+                    return Promise.resolve(s);
+                }).then( s => {
+                    localStorage._s = btoa(unescape(encodeURIComponent(JSON.stringify(s))));
+
+                    return Promise.resolve({...s});
                 })
             );
-        }
 
         this.oauth = (p) => {
             sender.site().then(s => {

@@ -66,10 +66,14 @@
                             screeningTemplateID: tid,
                     }) )
                     .then( a => {
-                        let answers = [];
+                        let answers = {};
                         let p = this._pages[this.pageNumber || 0] || [];
 
                         a?.response?.items?.forEach( i => {
+                            if (i.answerUUID?.length > 0) {
+                                i.answerUUID = i.answerUUID.map( x => (typeof(x) === 'string' && x) || x.answerUUID || '');
+                            }
+
                             answers[i.screeningQuestionID] = i;
                         });
 
@@ -1044,7 +1048,7 @@
                         continue;
                     }
 
-                    if (container.find(`input[data-qid=${qid}]:visible, textarea[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
+                    if (container.find(`[data-qid=${qid}]:visible`).length === 0) {
                         delete sender._answers[qid];
                         continue;
                     }
@@ -1066,12 +1070,32 @@
                             container.find(`input[data-qid=${qid}][value=${(v || '').trim()}]`).attr('checked', true);
                             container.find(`select[data-qid=${qid}]`).val((v || '').trim());
                         });
+
+                        container.find(`[data-qid=${qid}][data-qtype=multi-list]`)
+                            .val(ans.answerUUID)
+                            .trigger('input')
+                            .trigger('change');
                     } else if (ans.answerFile) {
-                        container.find(`input[data-qid=${qid}]`).val(this._fileBlob(ans.answerFile));
+                        let f = container.find(`[data-qid=${qid}]`);
+                        let field = f.attr('data-qid');
+
+                        f
+                            .hide()
+                            .parents('.input-field-container').find('[data-rel=file-list]')
+                                .empty()
+                                .append(
+                                    _fileEl({ name: ans.answerFileName })
+                                        .on('click', '[data-rel=action-remove]', function() {
+                                            delete sender._answers[field];
+
+                                            f.show();
+                                            $(this).parents('article').remove();
+                                        })
+                                );
                     }
                 }
 
-                container.find('[data-qtype=geo]').each( f => {
+                container.find('[data-qtype=geo]').each( (_, f) => {
                     let field = $(f);
 
                     if (field.val()?.length > 0) {
@@ -1079,13 +1103,14 @@
 
                         field.val(value.fullAddress || '');
 
-                        field.attr('data-geo-point', `${value.geoPoints.coordinates.geo[0]}`,`${value.geoPoints.coordinates.geo[1]}`);
-                        field.attr('data-geo-line1', values.line1);
-                        field.attr('data-geo-line2', values.unit);
-                        field.attr('data-geo-city', values.city);
-                        field.attr('data-geo-state', values.province);
-                        field.attr('data-geo-postal', values.postalCode);
-                        field.attr('data-geo-country', values.country);
+                        field.attr('data-geo-point', `${value.geoPoints.coordinates[0]},${value.geoPoints.coordinates[1]}`);
+                        field.attr('data-geo-line1', value.line1);
+                        field.attr('data-geo-line2', value.unit);
+                        field.attr('data-geo-city', value.city);
+                        field.attr('data-geo-state', value.province);
+                        field.attr('data-geo-postal', value.postalCode);
+                        field.attr('data-geo-country', value.country);
+                        field.attr('data-last-text', value.fullAddress || '');
                     }
                 });
             }

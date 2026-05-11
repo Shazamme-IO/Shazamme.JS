@@ -1092,7 +1092,7 @@
                         return Promise.resolve();
                     }
 
-                    sender._session = {
+                    return Promise.resolve({
                         id: p.clientUserID,
                         firebaseUserID: p.firebaseID,
                         email: p.email,
@@ -1105,10 +1105,8 @@
                         is: p.is,
                         clients: r.response.items
                             .map( i => i.clientID )
-                            .filter( (v, i, self) => self.indexOf(v) === i ),
-                    }
-
-                    return Promise.resolve(sender._session);
+                            .filter( sender.unique ),
+                    });
                 }).then( s => sender._userRoles(s).then( r => {
                     r?.forEach( x => {
                         if (x) {
@@ -1121,7 +1119,7 @@
 
                     return Promise.resolve(s);
                 })).then( s => {
-                    let c = s.candidate;
+                    let c = s?.candidate;
 
                     if (c) {
                         localStorage.vinylResponse = JSON.stringify({response: {
@@ -1156,6 +1154,7 @@
 
                     return Promise.resolve(s);
                 }).then( s => {
+                    sender._session = s;
                     localStorage._s = btoa(unescape(encodeURIComponent(JSON.stringify(s))));
 
                     return Promise.resolve({...s});

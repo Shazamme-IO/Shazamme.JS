@@ -66,10 +66,14 @@
                             screeningTemplateID: tid,
                     }) )
                     .then( a => {
-                        let answers = [];
+                        let answers = {};
                         let p = this._pages[this.pageNumber || 0] || [];
 
                         a?.response?.items?.forEach( i => {
+                            if (i.answerUUID?.length > 0) {
+                                i.answerUUID = i.answerUUID.map( x => (typeof(x) === 'string' && x) || x.answerUUID || '');
+                            }
+
                             answers[i.screeningQuestionID] = i;
                         });
 
@@ -792,7 +796,7 @@
                         continue;
                     }
 
-                    if (container.find(`input[data-qid=${qid}]:visible, select[data-qid=${qid}]:visible`).length === 0) {
+                    if (container.find(`[data-qid=${qid}]:visible`).length === 0) {
                         delete sender._answers[qid];
                         continue;
                     }
@@ -814,7 +818,22 @@
                             container.find(`select[data-qid=${qid}]`).val((v || '').trim());
                         });
                     } else if (ans.answerFile) {
-                        container.find(`input[data-qid=${qid}]`).val(this._fileBlob(ans.answerFile));
+                        let f = container.find(`[data-qid=${qid}]`);
+                        let field = f.attr('data-qid');
+
+                        f
+                            .hide()
+                            .parents('.input-field-container').find('[data-rel=file-list]')
+                                .empty()
+                                .append(
+                                    _fileEl({ name: ans.answerFileName })
+                                        .on('click', '[data-rel=action-remove]', function() {
+                                            delete sender._answers[field];
+
+                                            f.show();
+                                            $(this).parents('article').remove();
+                                        })
+                                );
                     }
                 }
             }

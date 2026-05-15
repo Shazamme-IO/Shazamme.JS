@@ -145,52 +145,94 @@
             }
 
             const validate = () => {
-                let isOk = true;
+                let missing = [];
 
                 container.find('input[required], textarea[required], select[required], button[required]').each( (i, el) => {
                     let field = $(el);
+                    let title = field.parents('.input-field-container').find('label').first().text() || '';
 
                     switch (field.attr('data-qtype')) {
                         case 'text':
-                        case 'select': {
+                        case 'list':
+                        case 'multi-list': {
                             let val = field.val();
 
-                            isOk = isOk && val && val.trim().length > 0;
+                            if (typeof(val) === 'string' && !(val?.trim()?.length > 0)) {
+                                missing.push(`\t· ${title}`);
+                            } else if (typeof(val) === 'object' && !(val.length > 0)) {
+                                missing.push(`\t· ${title}`);
+                            }
+
                             break;
                         }
 
                         case 'bool': {
-                            isOk = isOk && field.is(':checked');
+                            if (!field.is(':checked')) {
+                                missing.push(`\t· ${title}`);
+                            }
+
                             break;
                         }
 
                         case 'number': {
                             let val = field.val();
 
-                            isOk = isOk && val && val.trim().length > 0 && !isNaN(val);
+                            if (!(val?.trim()?.length > 0) || isNaN(val)) {
+                                missing.push(`\t· ${title}`);
+                            }
+
                             break;
                         }
 
                         case 'date': {
                             let val = Date.parse(field.val());
 
-                            isOk = isOk && !isNaN(val);
+                            if (!isNaN(val)) {
+                                missing.push(`\t· ${title}`);
+                            }
+
                             break;
                         }
 
                         case 'radio': {
-                            isOk = isOk && container.find(`input[type=radio][name=${field.attr('name')}]`).is(':checked');
+                            if (!container.find(`input[type=radio][name=${field.attr('name')}]`).is(':checked')) {
+                                missing.push(`\t· ${title}`);
+                            }
+
+                            break;
+                        }
+
+                        case 'check-list': {
+                            if (!container.find(`input[type=checkbox][data-qid=${field.attr('data-qid')}]`).is(':checked')) {
+                                missing.push(`\t· ${title}`);
+                            }
+
                             break;
                         }
 
                         case 'file': {
-                            isOk = isOk && sender._answers[field.attr('data-qid')]?.answerFile?.length > 0;
+                            if (!(sender._answers[field.attr('data-qid')]?.answerFile?.length > 0)) {
+                                missing.push(`\t· ${title}`);
+                            }
+
                             break;
                         }
                     }
+
                 });
 
-                return isOk;
+                if (missing.length > 0) {
+                    let msg = `${config?.warningScreeningQuestions || 'Please answer the following questions'}\n\n${missing.filter(shazamme.unique).join('\n')}`;
+
+                    site?.alertDialog({
+                        title: config?.warningScreeningQuestionTitle || 'Error',
+                        message: msg.replace(/\n/g, '<br>'),
+                    })?.appendTo(container) || ( () => {
+                        alert(msg);
+                    })();
+                }
+
+                return missing.length === 0;
             }
 
             this._pages = [];
@@ -585,7 +627,7 @@
                     }
 
                     case 'Multiselect Checkbox': {
-                        let opts = q.options?.map( o => `<label class="sq-question-option"><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" />${o.label || o.option}</label>`) || [];
+                        let opts = q.options?.map( o => `<label class="sq-question-option"><input type="checkbox" autocomplete="nope" data-qtype="check-list" data-qid="${q.screeningQuestionID}" data-value="${o.screeningQuestionOptionsID}" ${q.isMandatory ? 'required' : ''} />${o.label || o.option}</label>`) || [];
 
                         return `
                              <div class="input-field-container${q.isChild && ' field-child' || ''}">

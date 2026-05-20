@@ -109,7 +109,7 @@
                                     action: s?.linkedinOpenID ? 'Get Linkedin OpenID' : 'Get Linkedin',
                                     dudaSiteID: s?.dudaSiteID,
                                     linkedIncode: oAuthToken,
-                                    redirectUri: encodeURIComponent(`${uri.origin}${uri.pathname}`),
+                                    redirectUri: `${uri.origin}${uri.pathname}`,
                                 })
                             ).then( l => {
                                 if (!l.response.isNew) {

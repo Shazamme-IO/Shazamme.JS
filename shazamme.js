@@ -104,48 +104,55 @@
 
                         case provider.linkedin :
                         default: {
-                            sender.site().then( s =>
-                                shazamme.submit({
-                                    action: s?.linkedinOpenID ? 'Get Linkedin OpenID' : 'Get Linkedin',
-                                    dudaSiteID: s?.dudaSiteID,
-                                    linkedIncode: oAuthToken,
-                                    redirectUri: `${uri.origin}${uri.pathname}`,
-                                })
-                            ).then( l => {
-                                if (!l.response.isNew) {
-                                    sender.auth(l.response.email, l.response.firebaseUserID, true).then( s => {
-                                        if (s) {
-                                            sender.pub(message.auth, s);
-                                        } else {
-                                            sender._session = {
-                                                isOAuth: true,
-                                                isNew: true,
-                                                email: l.response.email,
-                                                firstName: l.response.firstName || '',
-                                                lastName: l.response.lastName || '',
-                                                provider: sender.cookie('_op'),
+                            setTimeout( () => {
+                                if (window.shazamme !== sender) {
+                                    resolve();
+                                    return;
+                                }
+
+                                sender.site().then( s =>
+                                    shazamme.submit({
+                                        action: s?.linkedinOpenID ? 'Get Linkedin OpenID' : 'Get Linkedin',
+                                        dudaSiteID: s?.dudaSiteID,
+                                        linkedIncode: oAuthToken,
+                                        redirectUri: `${uri.origin}${uri.pathname}`,
+                                    })
+                                ).then( l => {
+                                    if (!l.response.isNew) {
+                                        sender.auth(l.response.email, l.response.firebaseUserID, true).then( s => {
+                                            if (s) {
+                                                sender.pub(message.auth, s);
+                                            } else {
+                                                sender._session = {
+                                                    isOAuth: true,
+                                                    isNew: true,
+                                                    email: l.response.email,
+                                                    firstName: l.response.firstName || '',
+                                                    lastName: l.response.lastName || '',
+                                                    provider: sender.cookie('_op'),
+                                                }
+
+                                                sender.pub(message.auth, {...sender._session});
                                             }
-
-                                            sender.pub(message.auth, {...sender._session});
+                                        });
+                                    } else {
+                                        sender._session = {
+                                            isOAuth: true,
+                                            isNew: true,
+                                            email: l.response.email,
+                                            firstName: l.response.firstName || '',
+                                            lastName: l.response.lastName || '',
+                                            provider: sender.cookie('_op'),
                                         }
-                                    });
-                                } else {
-                                    sender._session = {
-                                        isOAuth: true,
-                                        isNew: true,
-                                        email: l.response.email,
-                                        firstName: l.response.firstName || '',
-                                        lastName: l.response.lastName || '',
-                                        provider: sender.cookie('_op'),
-                                    }
 
-                                    sender.pub(message.auth, {...sender._session});
-                                };
+                                        sender.pub(message.auth, {...sender._session});
+                                    };
 
-                                resolve();
-                            }).catch( () => {
-                                resolve();
-                            });
+                                    resolve();
+                                }).catch( () => {
+                                    resolve();
+                                });
+                            }, 2000);
 
                             break;
                         }

@@ -21,7 +21,8 @@
             const collection = o?.collection || {};
             const editing = o?.editing === true;
             const container = o?.container || $(`<div data-rel="screening-fields"></div>`);
-            const site = shazamme.bag('site-config');
+
+            let site = null;
 
             this.pageNumber = 0;
             this.isValid = true;
@@ -1136,7 +1137,11 @@
             });
 
             return this._fetchQuestions().then( () => {
-                this._showQuestions(0, false);
+                shazamme.sub('site-config-ready', () => {
+                    site = shazamme.bag('site-config');
+
+                    this._showQuestions(0, false);
+                });
 
                 if (editing) {
                     this._showEditor();

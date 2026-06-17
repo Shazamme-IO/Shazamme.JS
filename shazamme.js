@@ -421,7 +421,9 @@
                                 accountID: config.accountId || defaultAccount,
                                 elementID: config.elementId,
                                 pageName: config.page,
-                            }, false).then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
+                            }, false)
+                            .then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
+                            .catch( () => Promise.resolve() )
                             :
                             sender.submit({
                                 action: "Set Widget Configuration",

@@ -15,6 +15,7 @@
     }
 
     const seekAdvertiser = '20690608';
+    const defaultAccount = '92cc58fdf9714b6e938889c426fe78a8';
 
     let _s = {}
     let _ps = {}
@@ -417,7 +418,7 @@
                             sender.submit({
                                 action: "Get Widget Configuration",
                                 siteID: config.siteId,
-                                accountID: config.accountId,
+                                accountID: config.accountId || defaultAccount,
                                 elementID: config.elementId,
                                 pageName: config.page,
                             }, false).then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
@@ -425,7 +426,7 @@
                             sender.submit({
                                 action: "Set Widget Configuration",
                                 siteID: config.siteId,
-                                accountID: config.accountId,
+                                accountID: config.accountId || defaultAccount,
                                 elementID: config.elementId,
                                 pageName: config.page,
                                 widgetName: n,

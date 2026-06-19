@@ -1046,7 +1046,7 @@
 
                     container.find('.button-editor').remove();
 
-                    if (semder._ko.length > 0) {
+                    if (sender._ko.length > 0) {
                         $('<button />')
                             .text('Edit Knockout Handling')
                             .addClass(['button-editor', configured ? '' : 'required'])

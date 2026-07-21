@@ -78,9 +78,8 @@
 
 .input-field-container.field-child {
     grid-column-start: 1;
-    grid-column-end: -1;
-    width: 100%;
-    margin: 12px 0px 0px 0px;
+    grid-column-end: 3;
+    margin-left: 20px;
 }
 
 .sq-help-text {

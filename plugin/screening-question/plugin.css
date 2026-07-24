@@ -152,13 +152,13 @@
 .section-form .field .sq-opt-list .sq-question-option {
     display: grid;
     grid-template-columns: auto 1fr !important;
-    grid-column-gap: 4px !important;
+    grid-column-gap: 10px !important;
     align-items: center;
     margin: 8px 5px 5px 8px;
     width: 100%;
     border: 1px solid #a6a6a6;
     border-radius: 3px;
-    padding: 5px 12px !important;
+    padding: 5px 10px !important;
 }
 
 .sq-opt-list .sq-question-option input[type=radio],

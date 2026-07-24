@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.7';
+    const Version = '1.0.8';
 
     const Message = {
         submit: 'screening-question-apply',

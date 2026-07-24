@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.2';
+    const Version = '1.0.3';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -586,8 +586,22 @@
                     container
                         .find('input, select')
                         .on('change', function() {
-                            if (!$(this).is('[data-qtype=date]')) {
-                                sender._recordAnswers();
+                            if ($(this).is('[data-qtype=date]')) {
+                                return;
+                            }
+
+                            sender._recordAnswers();
+
+                            // Only a change to a PARENT question can reveal or hide
+                            // child questions, so only then do we rebuild. Rebuilding on
+                            // a child/leaf change needlessly re-renders the whole page —
+                            // and for select2 multi-lists it re-enters _showQuestions via
+                            // _restoreAnswers' change trigger, which unchecked the parent
+                            // radio and collapsed the revealed children ("reload" bug).
+                            let qid = $(this).attr('data-qid');
+                            let isParent = sender._pages[page]?.some( q => q.parentQuestionID === qid );
+
+                            if (isParent) {
                                 sender._showQuestions(page, false);
                             }
                         });

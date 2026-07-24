@@ -1,0 +1,17 @@
+{
+  "name": "shazamme-js",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shazamme.JS SDK plugins (sdk.shazamme.io). Dev tooling: reproducible build + test harness.",
+  "type": "module",
+  "scripts": {
+    "build": "node build/build.mjs",
+    "test": "node test/screening-question.rerender.test.mjs"
+  },
+  "devDependencies": {
+    "clean-css": "^5.3.3",
+    "jquery": "^3.7.1",
+    "jsdom": "^24.1.1",
+    "terser": "^5.31.6"
+  }
+}

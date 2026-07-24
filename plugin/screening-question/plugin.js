@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.3';
+    const Version = '1.0.4';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -8,6 +8,24 @@
     shazamme
         .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1775795897238`)
         .then();
+
+    // Critical layout injected synchronously so fields render full-width from the
+    // first paint instead of flashing narrow until the async stylesheet above loads.
+    if (!document.getElementById('sq-critical-style')) {
+        const critical = document.createElement('style');
+        critical.id = 'sq-critical-style';
+        critical.textContent =
+            '[data-rel=screening-fields]{width:100%}' +
+            '[data-rel=screening-fields] input[type=text],' +
+            '[data-rel=screening-fields] input[type=email],' +
+            '[data-rel=screening-fields] input[type=number],' +
+            '[data-rel=screening-fields] input[type=password],' +
+            '[data-rel=screening-fields] input[type=tel],' +
+            '[data-rel=screening-fields] input[type=date],' +
+            '[data-rel=screening-fields] select,' +
+            '[data-rel=screening-fields] textarea{width:100%;box-sizing:border-box}';
+        document.head.appendChild(critical);
+    }
 
     shazamme.plugin = {
         ...shazamme.plugin,

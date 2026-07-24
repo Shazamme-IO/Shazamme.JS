@@ -160,9 +160,14 @@
     padding: 5px;
 }
 
-.sq-opt-list .sq-question-option input[type=radio] {
+.sq-opt-list .sq-question-option input[type=radio],
+.input-options-container .sq-question-option input[type=checkbox] {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px;
     margin: 3px 5px;
-    height: 1em;
+    flex: 0 0 auto;
+    align-self: center;
 }
 
 .screening-pages-container .button-page-nav {

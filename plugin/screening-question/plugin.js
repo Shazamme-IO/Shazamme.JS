@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.6';
+    const Version = '1.0.7';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -15,7 +15,10 @@
         const critical = document.createElement('style');
         critical.id = 'sq-critical-style';
         critical.textContent =
-            '[data-rel=screening-fields]{width:100%}' +
+            '[data-rel=screening-fields]{width:100%!important;box-sizing:border-box}' +
+            '[data-rel=screening-fields] .input-field-container,' +
+            '[data-rel=screening-fields] .sq-opt-list,' +
+            '[data-rel=screening-fields] .sq-question-option{width:100%;box-sizing:border-box}' +
             '[data-rel=screening-fields] input[type=text],' +
             '[data-rel=screening-fields] input[type=email],' +
             '[data-rel=screening-fields] input[type=number],' +
@@ -23,7 +26,7 @@
             '[data-rel=screening-fields] input[type=tel],' +
             '[data-rel=screening-fields] input[type=date],' +
             '[data-rel=screening-fields] select,' +
-            '[data-rel=screening-fields] textarea{width:100%;box-sizing:border-box}';
+            '[data-rel=screening-fields] textarea{width:100%!important;box-sizing:border-box}';
         document.head.appendChild(critical);
     }
 

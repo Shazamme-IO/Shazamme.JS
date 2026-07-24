@@ -151,14 +151,14 @@
 
 .section-form .field .sq-opt-list .sq-question-option {
     display: grid;
-    grid-template-columns: auto 1fr;
-    grid-column-gap: 4px;
+    grid-template-columns: auto 1fr !important;
+    grid-column-gap: 4px !important;
     align-items: center;
     margin: 8px 5px 5px 8px;
     width: 100%;
     border: 1px solid #a6a6a6;
     border-radius: 3px;
-    padding: 5px 12px;
+    padding: 5px 12px !important;
 }
 
 .sq-opt-list .sq-question-option input[type=radio],
@@ -166,7 +166,7 @@
     width: 16px !important;
     height: 16px !important;
     min-width: 16px;
-    margin: 3px 2px;
+    margin: 3px 0 !important;
     flex: 0 0 auto;
     align-self: center;
 }

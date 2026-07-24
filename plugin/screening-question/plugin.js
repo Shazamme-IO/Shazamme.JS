@@ -1,5 +1,5 @@
 (() => {
-    const Version = '1.0.8';
+    const Version = '1.0.9';
 
     const Message = {
         submit: 'screening-question-apply',
@@ -14,19 +14,22 @@
     if (!document.getElementById('sq-critical-style')) {
         const critical = document.createElement('style');
         critical.id = 'sq-critical-style';
+        // Scope to the plugin's own classes (same selectors plugin.css uses) rather
+        // than a [data-rel] container — the Lead Form widget supplies its OWN
+        // container ([data-rel=data-screening-questions]), so a screening-fields
+        // scope matched nothing and the form still flashed narrow before plugin.css.
         critical.textContent =
-            '[data-rel=screening-fields]{width:100%!important;box-sizing:border-box}' +
-            '[data-rel=screening-fields] .input-field-container,' +
-            '[data-rel=screening-fields] .sq-opt-list,' +
-            '[data-rel=screening-fields] .sq-question-option{width:100%;box-sizing:border-box}' +
-            '[data-rel=screening-fields] input[type=text],' +
-            '[data-rel=screening-fields] input[type=email],' +
-            '[data-rel=screening-fields] input[type=number],' +
-            '[data-rel=screening-fields] input[type=password],' +
-            '[data-rel=screening-fields] input[type=tel],' +
-            '[data-rel=screening-fields] input[type=date],' +
-            '[data-rel=screening-fields] select,' +
-            '[data-rel=screening-fields] textarea{width:100%!important;box-sizing:border-box}';
+            '.input-field-container{display:block;width:100%;box-sizing:border-box}' +
+            '.input-field-container input[type=text],' +
+            '.input-field-container input[type=email],' +
+            '.input-field-container input[type=number],' +
+            '.input-field-container input[type=password],' +
+            '.input-field-container input[type=tel],' +
+            '.input-field-container input[type=date],' +
+            '.input-field-container select,' +
+            '.input-field-container textarea{width:100%;box-sizing:border-box}' +
+            '.sq-opt-list{display:grid;grid-template-columns:1fr 1fr;width:100%}' +
+            '.sq-opt-list .sq-question-option{width:100%;box-sizing:border-box}';
         document.head.appendChild(critical);
     }
 

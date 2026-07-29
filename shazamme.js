@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.3';
+    const version = '1.0.8';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -159,6 +159,11 @@
 
             sender._sid = sender._sid || sid;
 
+            // Populate per-site config in the background — do NOT block ready() on it.
+            // The per-site shazamme.json files 404 on most sites, adding ~360ms to
+            // ready() for nothing. Result is cached so the 404s fire at most once.
+            sender._pageConfig(sid, p);
+
             window[`shazamme-${version}-ready`] = _ready = new Promise( r => {
                 Promise.all([
                     $.get(`${host.resources}/js/site/shazamme.json`)
@@ -174,8 +179,6 @@
                         }),
 
                     sender.site(),
-
-                    sender._pageConfig(sid, p),
 
                     handleOAuth(),
                 ])
@@ -663,41 +666,99 @@
                         return;
                     }
 
-                    $.ajax({
-                        url: RegionalUrl,
-                        type: 'POST',
-                        data: JSON.stringify({
-                            action: 'Get Site ID',
-                            dudaSiteID: this._sid,
-                        })
-                    }).then( res => {
-                        let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                    // Build the resolved site object from a known origin + siteID.
+                    // Every URL the SDK needs is deterministic from the environment
+                    // origin, so no server round-trip is required once we know it.
+                    const fromOrigin = (origin, siteID) => {
+                        origin = String(origin).replace(/\/+$/, '');
+                        sender._site = {
+                            siteID: siteID,
+                            regionID: siteID,
+                            ApiUrl: origin,
+                            ActionUrl: `${origin}/Job-Listing/src/php/actions`,
+                            RegionalUrl: `${origin}/Job-Listing/src/php/regional/actions`,
+                            documentUri: `${origin}/candidate-document/`,
+                        };
+                        return sender._site;
+                    };
 
-                        if (s?.isLive) {
-                            sender._site = s;
-                            sender._site.documentUri = 'https://shazamme.io/candidate-document/';
+                    // NOTE: key bumped to v2 in 1.0.7 — invalidates staging-origin
+                    // site objects that 1.0.6 poisoned into localStorage for any site
+                    // with a staging region record (e.g. legalpeople), so they
+                    // re-resolve against prod on the next load.
+                    const cacheKey = `shazamme:site:v2:${this._sid}`;
+
+                    // No-hang guard: the last-resort probe has no error path; if nothing
+                    // resolves in 8s, fall back to a staging default so site() never hangs.
+                    setTimeout( () => {
+                        if (!sender._site) { resolve(fromOrigin('https://shazamme.io', sender._sid)); }
+                    }, 8000);
+
+                    // 1) Baked config on the page — zero network, instant.
+                    const baked = window.__shazammeSite;
+                    if (baked && baked.siteID && baked.apiUrl) {
+                        resolve(fromOrigin(baked.apiUrl, baked.siteID));
+                        return;
+                    }
+
+                    // 2) Per-site cache from an earlier resolve — instant.
+                    try {
+                        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+                        if (cached && cached.siteID) {
+                            sender._site = cached;
                             resolve(sender._site);
-
                             return;
                         }
+                    } catch (e) {}
 
+                    // Last-resort: the original prod-first probe (unchanged), kept so
+                    // no site can regress if the fast paths don't apply.
+                    const legacyProbe = () => {
                         $.ajax({
-                            url: 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions',
+                            url: RegionalUrl,
                             type: 'POST',
                             data: JSON.stringify({
                                 action: 'Get Site ID',
                                 dudaSiteID: this._sid,
                             })
                         }).then( res => {
-                            sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
-                            sender._site.ApiUrl = 'https://staging.shazamme.io';
-                            sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
-                            sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
-                            sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
+                            let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
 
-                            resolve(sender._site);
+                            if (s?.isLive) {
+                                sender._site = s;
+                                sender._site.documentUri = 'https://shazamme.io/candidate-document/';
+                                resolve(sender._site);
+
+                                return;
+                            }
+
+                            $.ajax({
+                                url: 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions',
+                                type: 'POST',
+                                data: JSON.stringify({
+                                    action: 'Get Site ID',
+                                    dudaSiteID: this._sid,
+                                })
+                            }).then( res => {
+                                sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                                sender._site.ApiUrl = 'https://staging.shazamme.io';
+                                sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
+                                sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
+                                sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
+
+                                resolve(sender._site);
+                            });
                         });
-                    });
+                    };
+
+                    // 3) Prod-first resolve. 1.0.6 inserted a `Get Region URL` step
+                    //    here that was hardcoded to staging.shazamme.io — any site with
+                    //    a staging region record (e.g. legalpeople) adopted staging's
+                    //    origin and served its stale feed. Removed in 1.0.7: go straight
+                    //    to the prod-first probe, which returns the correct live site.
+                    //    Per-region origin resolution will be reinstated against PROD
+                    //    once prod's region records are populated (they are empty today).
+                    legacyProbe();
                 });
             }
 
@@ -1462,7 +1523,7 @@
             });
         }
 
-        this._pageConfig = (sid, p) => new Promise( (resolve, reject) => {
+        this._pageConfigRun = (sid, p) => new Promise( (resolve, reject) => {
             if (!sid || !p) {
                 resolve();
                 return;
@@ -1474,6 +1535,16 @@
                 resolve(sender._config[`${sid}_${p}`]);
                 return;
             }
+
+            const _pcKey = `shazamme:pageconfig:${sid}_${p}`;
+            try {
+                const _pcCached = JSON.parse(localStorage.getItem(_pcKey) || 'null');
+                if (_pcCached) {
+                    sender._config[`${sid}_${p}`] = _pcCached;
+                    resolve(_pcCached);
+                    return;
+                }
+            } catch (e) {}
 
             Promise
                 .allSettled([
@@ -1503,6 +1574,7 @@
                     });
 
                     sender._config[`${sid}_${p}`] = c;
+                    try { localStorage.setItem(_pcKey, JSON.stringify(c)); } catch (e) {}
                     resolve(c);
                 }, err => {
                     if (err.status >= 400 && err.status < 500) {
@@ -1515,6 +1587,22 @@
                     sender.warn(`Error encountered looking for page configuration (${sid} : ${p}`, err);
                 });
         });
+
+        // In-flight dedup: the SDK calls _pageConfig from several places at once.
+        // Share ONE promise per sid_p so a cold visit fetches the config once
+        // instead of firing the same 404 pair ~9x. Cross-load caching still lives
+        // in _pageConfigRun (localStorage).
+        this._pageConfig = (sid, p) => {
+            if (!sid || !p) return Promise.resolve();
+            sender._config = sender._config || {};
+            sender._configP = sender._configP || {};
+            const _k = `${sid}_${p}`;
+            if (sender._config[_k]) return Promise.resolve(sender._config[_k]);
+            if (sender._configP[_k]) return sender._configP[_k];
+            const _pr = sender._pageConfigRun(sid, p);
+            sender._configP[_k] = _pr;
+            return _pr;
+        };
 
         this._userRoles = (s) => Promise.all([
             s.is?.indexOf('candidate') >= 0 && sender.submit({
@@ -1560,12 +1648,40 @@
                     console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
 
                     if (c.action) {
-                        $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
-                            if (c.useCache) {
-                                c._cache = r;
+                        // The Duda collection is missing/empty, so we fall back to the
+                        // legacy PHP action. That endpoint is slow (~2-3s) — especially
+                        // when the collection genuinely doesn't exist (e.g. Get Work
+                        // Models on a site with no work-model collection) — so cache the
+                        // result (incl. empty) per site+action and bound it with a
+                        // timeout. Missing collections then resolve instantly on repeat
+                        // visits, and can never block the widget on the first one.
+                        const _aKey = `shazamme:action:${this._sid}:${c.action}`;
+                        try {
+                            const _cached = JSON.parse(localStorage.getItem(_aKey) || 'null');
+                            if (_cached !== null) {
+                                if (c.useCache) { c._cache = _cached; }
+                                resolve(_cached);
+                                return;
                             }
+                        } catch (e) {}
 
+                        let _settled = false;
+                        const _finish = (r) => {
+                            if (_settled) { return; }
+                            _settled = true;
+                            if (c.useCache) { c._cache = r; }
                             resolve(r);
+                        };
+                        const _timer = setTimeout( () => _finish([]), 1500 );
+
+                        $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                            clearTimeout(_timer);
+                            try { localStorage.setItem(_aKey, JSON.stringify(r)); } catch (e) {}
+                            _finish(r);
+                        }, () => {
+                            clearTimeout(_timer);
+                            try { localStorage.setItem(_aKey, JSON.stringify([])); } catch (e) {}
+                            _finish([]);
                         });
                     } else {
                         resolve([]);

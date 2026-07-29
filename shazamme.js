@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.0';
+    const version = '1.1.1';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -16,6 +16,15 @@
 
     const seekAdvertiser = '20690608';
     const defaultAccount = '92cc58fdf9714b6e938889c426fe78a8';
+
+    // Slow, per-site, rarely-changing READ actions that block page load and are
+    // safe to serve from a short-lived cache. submit() caches ONLY these — never
+    // job/search/data actions, which must stay live. Extend deliberately, and
+    // only with actions whose response is static config for a given site.
+    const SUBMIT_CACHE_ACTIONS = new Set([
+        'Get Candidate File Types',
+    ]);
+    const SUBMIT_CACHE_TTL = 900000; // 15 min
 
     let _s = {}
     let _ps = {}
@@ -805,14 +814,44 @@
 
         this.fetch = (c) => c?.isExternal ? this._extFetch(c) : this._dudaFetch(c);
 
-        this.submit = (d, regional = true) =>
-            this.site().then( s =>
+        this.submit = (d, regional = true) => {
+            // Cache ONLY allowlisted static-config reads (SUBMIT_CACHE_ACTIONS).
+            // Warm hit (fresh, < TTL) → resolve instantly, no network, so the
+            // slow legacy PHP call (~1s, e.g. Get Candidate File Types) drops off
+            // the critical path for return visitors. A cold/stale key returns the
+            // live promise UNCHANGED (waits for PHP, exact original response
+            // shape) and caches the result for next time — so this can never
+            // break a caller or serve stale job/search data.
+            const _key = (d && SUBMIT_CACHE_ACTIONS.has(d.action))
+                ? `shazamme:submit:${d.action}:${d.siteID || d.dudaSiteID || ''}:${d.language || ''}`
+                : null;
+
+            if (_key) {
+                try {
+                    const _hit = JSON.parse(localStorage.getItem(_key) || 'null');
+                    if (_hit && (Date.now() - _hit.t) < SUBMIT_CACHE_TTL) {
+                        return Promise.resolve(_hit.v);
+                    }
+                } catch (e) {}
+            }
+
+            const _live = this.site().then( s =>
                 $.ajax({
                     url: (regional && (s?.RegionalUrl || RegionalUrl)) || s?.ActionUrl || ActionUrl,
                     type: 'POST',
                     data: JSON.stringify(d),
                 })
             );
+
+            if (_key) {
+                _live.then(
+                    r => { try { localStorage.setItem(_key, JSON.stringify({ v: r, t: Date.now() })); } catch (e) {} },
+                    () => {}
+                );
+            }
+
+            return _live;
+        };
 
         this.firebase = () => {
             const create = (uname, secret) => new Promise( (resolve, reject) => {

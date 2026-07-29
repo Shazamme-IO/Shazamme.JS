@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.9';
+    const version = '1.1.0';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -410,27 +410,65 @@
                         return sender.bag(`${n}:${config.widgetId}-${config.elementId}:${k}`, v);
                     },
 
-                    config: (c) =>
-                        c === undefined ?
-                            sender.submit({
-                                action: "Get Widget Configuration",
-                                siteID: config.siteId,
-                                accountID: config.accountId || defaultAccount,
-                                elementID: config.elementId,
-                                pageName: config.page,
-                            }, false)
-                                .then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
-                                .catch( () => Promise.resolve() )
-                            :
-                            sender.submit({
-                                action: "Set Widget Configuration",
-                                siteID: config.siteId,
-                                accountID: config.accountId || defaultAccount,
-                                elementID: config.elementId,
-                                pageName: config.page,
-                                widgetName: n,
-                                configuration: JSON.stringify(c),
-                            }, false),
+                    config: (c) => {
+                        // Per-widget saved configuration. The GET ("Get Widget
+                        // Configuration") hits the slow legacy PHP action
+                        // (~1-1.2s) on EVERY widget on EVERY page load, and on
+                        // most sites returns an empty config — so it was pure
+                        // dead weight on the critical path (2 widgets = ~2.4s).
+                        // Cache it in localStorage per site+element+page with a
+                        // short TTL so warm loads resolve instantly, bounded by a
+                        // 1.5s timeout so a cold first load never blocks the
+                        // widget. A Set writes through the cache (below) and the
+                        // TTL lets a changed config self-heal across browsers.
+                        const _wKey = `shazamme:wcfg:${config.siteId}:${config.elementId}:${config.page}`;
+                        const _wTtl = 300000; // 5 min
+
+                        if (c === undefined) {
+                            try {
+                                const _hit = JSON.parse(localStorage.getItem(_wKey) || 'null');
+                                if (_hit && (Date.now() - _hit.t) < _wTtl) {
+                                    return Promise.resolve(_hit.v);
+                                }
+                            } catch (e) {}
+
+                            return new Promise( (resolve) => {
+                                let _done = false;
+                                const _fin = (v) => { if (_done) { return; } _done = true; resolve(v); };
+                                const _t = setTimeout( () => _fin(undefined), 1500 );
+
+                                sender.submit({
+                                    action: "Get Widget Configuration",
+                                    siteID: config.siteId,
+                                    accountID: config.accountId || defaultAccount,
+                                    elementID: config.elementId,
+                                    pageName: config.page,
+                                }, false)
+                                    .then( r => {
+                                        clearTimeout(_t);
+                                        let v = null;
+                                        try { v = JSON.parse(r.configuration || null); } catch (e) {}
+                                        try { localStorage.setItem(_wKey, JSON.stringify({ v, t: Date.now() })); } catch (e) {}
+                                        _fin(v);
+                                    })
+                                    .catch( () => { clearTimeout(_t); _fin(undefined); } );
+                            });
+                        }
+
+                        // Set — write through the cache so the saved value is
+                        // reflected on the very next GET (editor + live site).
+                        try { localStorage.setItem(_wKey, JSON.stringify({ v: c, t: Date.now() })); } catch (e) {}
+
+                        return sender.submit({
+                            action: "Set Widget Configuration",
+                            siteID: config.siteId,
+                            accountID: config.accountId || defaultAccount,
+                            elementID: config.elementId,
+                            pageName: config.page,
+                            widgetName: n,
+                            configuration: JSON.stringify(c),
+                        }, false);
+                    },
 
                     log: (m, ...p) => {
                         sender.log(`got message from ${n}`, c);

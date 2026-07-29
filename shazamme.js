@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.6';
+    const version = '1.0.8';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -682,12 +682,16 @@
                         return sender._site;
                     };
 
-                    const cacheKey = `shazamme:site:${this._sid}`;
+                    // NOTE: key bumped to v2 in 1.0.7 — invalidates staging-origin
+                    // site objects that 1.0.6 poisoned into localStorage for any site
+                    // with a staging region record (e.g. legalpeople), so they
+                    // re-resolve against prod on the next load.
+                    const cacheKey = `shazamme:site:v2:${this._sid}`;
 
                     // No-hang guard: the last-resort probe has no error path; if nothing
                     // resolves in 8s, fall back to a staging default so site() never hangs.
                     setTimeout( () => {
-                        if (!sender._site) { resolve(fromOrigin('https://staging.shazamme.io', sender._sid)); }
+                        if (!sender._site) { resolve(fromOrigin('https://shazamme.io', sender._sid)); }
                     }, 8000);
 
                     // 1) Baked config on the page — zero network, instant.
@@ -747,28 +751,14 @@
                         });
                     };
 
-                    // 3) Get Region URL on staging — env-correct, then cache it.
-                    // (Test build targets staging; the durable 1.0.4 will resolve
-                    //  the origin per-site instead of hardcoding staging here.)
-                    $.ajax({
-                        url: `https://staging.shazamme.io/Job-Listing/src/php/actions?dudaSiteID=${this._sid}&action=Get%20Region%20URL`,
-                        type: 'GET',
-                        dataType: 'json',
-                    }).then( res => {
-                        let data = res;
-                        if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
-                        const region = Array.isArray(data) ? (data[0] && data[0].data) : (data && data.data);
-
-                        if (region && region.siteID && region.candidateURL) {
-                            const origin = new URL(region.candidateURL).origin;
-                            fromOrigin(origin, region.siteID);
-                            try { localStorage.setItem(cacheKey, JSON.stringify(sender._site)); } catch (e) {}
-                            resolve(sender._site);
-                            return;
-                        }
-
-                        legacyProbe();
-                    }, () => legacyProbe());
+                    // 3) Prod-first resolve. 1.0.6 inserted a `Get Region URL` step
+                    //    here that was hardcoded to staging.shazamme.io — any site with
+                    //    a staging region record (e.g. legalpeople) adopted staging's
+                    //    origin and served its stale feed. Removed in 1.0.7: go straight
+                    //    to the prod-first probe, which returns the correct live site.
+                    //    Per-region origin resolution will be reinstated against PROD
+                    //    once prod's region records are populated (they are empty today).
+                    legacyProbe();
                 });
             }
 
@@ -1658,12 +1648,40 @@
                     console.warn(`Unable to fetch collection for ${c.name} (${this._sid})`);
 
                     if (c.action) {
-                        $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
-                            if (c.useCache) {
-                                c._cache = r;
+                        // The Duda collection is missing/empty, so we fall back to the
+                        // legacy PHP action. That endpoint is slow (~2-3s) — especially
+                        // when the collection genuinely doesn't exist (e.g. Get Work
+                        // Models on a site with no work-model collection) — so cache the
+                        // result (incl. empty) per site+action and bound it with a
+                        // timeout. Missing collections then resolve instantly on repeat
+                        // visits, and can never block the widget on the first one.
+                        const _aKey = `shazamme:action:${this._sid}:${c.action}`;
+                        try {
+                            const _cached = JSON.parse(localStorage.getItem(_aKey) || 'null');
+                            if (_cached !== null) {
+                                if (c.useCache) { c._cache = _cached; }
+                                resolve(_cached);
+                                return;
                             }
+                        } catch (e) {}
 
+                        let _settled = false;
+                        const _finish = (r) => {
+                            if (_settled) { return; }
+                            _settled = true;
+                            if (c.useCache) { c._cache = r; }
                             resolve(r);
+                        };
+                        const _timer = setTimeout( () => _finish([]), 1500 );
+
+                        $.ajax(`${c.actionUrl || sender._site?.ActionUrl || ActionUrl}?dudaSiteID=${this._sid}&action=${c.action}`).then( r => {
+                            clearTimeout(_timer);
+                            try { localStorage.setItem(_aKey, JSON.stringify(r)); } catch (e) {}
+                            _finish(r);
+                        }, () => {
+                            clearTimeout(_timer);
+                            try { localStorage.setItem(_aKey, JSON.stringify([])); } catch (e) {}
+                            _finish([]);
                         });
                     } else {
                         resolve([]);

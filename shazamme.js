@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.0.8';
+    const version = '1.0.9';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -1372,35 +1372,14 @@
             console.error(m, ...p);
         }
 
-        this.tracer = () => new Promise( (resolve, reject) => {
-            const o = {
-                trace: (m) => sender._tracer?.push(m),
-            }
-
-            if (sender._tracer) {
-                resolve(o);
-            } else if (!window.Cookiebot || Cookiebot?.consent?.statistics) {
-                $.getScript("https://cloudfront.loggly.com/js/loggly.tracker-2.2.4.min.js",
-                    function() {
-                        sender._tracer = _LTracker;
-
-                        sender._tracer.push({
-                            'logglyKey': '70c3ea33-de10-495b-bb9d-574e90489d69',
-                            'sendConsoleErrors': false,
-                            'tag': 'loggly-jslogger',
-                        });
-
-                        resolve(o);
-                    },
-
-                    function() {
-                        reject();
-                    }
-                );
-            } else {
-                reject();
-            }
-        });
+        // Loggly client-side tracing removed (not required). Previously this
+        // lazy-loaded cloudfront.loggly.com/js/loggly.tracker; because it had no
+        // in-flight dedup, every widget on the page (5-6 typically) raced past
+        // the `sender._tracer` guard and each fired its own $.getScript, so the
+        // loggly script was fetched 5-6 times per page load. We now resolve with
+        // a no-op tracer that keeps the `.trace()` shape callers expect
+        // (`tracer().then(t => t?.trace(...))`) without any network or 3rd party.
+        this.tracer = () => Promise.resolve({ trace: () => {} });
 
         this.dragula = () => new Promise( (resolve, reject) => {
             $.getScript(`${host.resources}/dragula/dragula.min.js`,

@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.1';
+    const version = '1.1.2';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -1219,8 +1219,18 @@
                 return Promise.resolve();
             }, () => Promise.resolve() )
 
-        this.auth = (uname, uid, isOAuth = false) =>
-            sender.site().then( s =>
+        this.auth = (uname, uid, isOAuth = false, skipDocs = false) => {
+            const _k = `${uname}|${uid}|${skipDocs ? 'lite' : 'full'}`;
+
+            // Dedup concurrent auths (the multi-widget burst) by sharing one
+            // in-flight chain keyed by user. NOT cached across time, so the
+            // register poll still re-resolves each tick until the candidate appears.
+            if (sender._authP && sender._authKey === _k) {
+                return sender._authP;
+            }
+
+            sender._authKey = _k;
+            sender._authP = sender.site().then( s =>
                 sender.submit({
                     action: "Verify User",
                     siteID: s.siteID,
@@ -1273,6 +1283,12 @@
                             coverLetterFileName: null,
                         }});
 
+                        // Register poll passes skipDocs: it only needs `.candidate`
+                        // to trigger the redirect. Skip the heavy CV/cover/photo
+                        // document fetch here; the dashboard re-fetches it on load.
+                        if (skipDocs) {
+                            return Promise.resolve(s);
+                        }
 
                         return sender.submit({
                             action: 'Get Candidate Documents',
@@ -1300,7 +1316,12 @@
 
                     return Promise.resolve({...s});
                 })
-            );
+            )
+            .then( r => { sender._authP = null; return r; })
+            .catch( e => { sender._authP = null; return Promise.reject(e); });
+
+            return sender._authP;
+        };
 
         this.oauth = (p) => {
             sender.site().then(s => {
@@ -1857,6 +1878,60 @@
                         }
                     });
                 }));
+            }
+        });
+    }
+
+    // ── Global input guards (fleet-wide: every widget, every site) ───────────
+    // Attached once per page regardless of how many SDK copies load.
+    //   1) Phone/mobile: strip anything that is not a digit or basic phone
+    //      formatting (+ ( ) - space) as the user types.
+    //   2) Email: on blur, flag invalid format with the `.invalid` class — the
+    //      same hook widget submit-gates already check.
+    if (typeof document !== 'undefined' && !window.__shazInputGuards) {
+        window.__shazInputGuards = true;
+
+        const PHONE_STRIP = /[^0-9+()\-\s]/g;
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        const fieldKey = (el) => `${el.id || ''} ${el.getAttribute('name') || ''}`.toLowerCase();
+
+        const isPhoneField = (el) => {
+            if (!el || el.tagName !== 'INPUT') return false;
+            const t = (el.getAttribute('type') || '').toLowerCase();
+            if (t === 'tel' || t === 'telephone') return true;
+            if (t === 'email' || t === 'password' || t === 'number') return false;
+            return /phone|mobile/.test(fieldKey(el));
+        };
+
+        const isEmailField = (el) => {
+            if (!el || el.tagName !== 'INPUT') return false;
+            const t = (el.getAttribute('type') || '').toLowerCase();
+            if (t === 'email') return true;
+            if (t === 'tel' || t === 'telephone' || t === 'password' || t === 'number') return false;
+            return /e-?mail/.test(fieldKey(el));
+        };
+
+        document.addEventListener('input', (e) => {
+            const el = e.target;
+            if (!isPhoneField(el)) return;
+            const before = el.value;
+            const cleaned = before.replace(PHONE_STRIP, '');
+            if (cleaned === before) return;
+            const start = el.selectionStart;
+            const removed = (before.slice(0, start).match(PHONE_STRIP) || []).length;
+            el.value = cleaned;
+            try { el.setSelectionRange(Math.max(0, start - removed), Math.max(0, start - removed)); } catch (_) {}
+        }, true);
+
+        document.addEventListener('focusout', (e) => {
+            const el = e.target;
+            if (!isEmailField(el)) return;
+            const v = (el.value || '').trim();
+            if (v.length > 0 && !EMAIL_RE.test(v)) {
+                el.classList.add('invalid');
+            } else {
+                el.classList.remove('invalid');
             }
         });
     }

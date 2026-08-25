@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.2';
+    const version = '1.1.3';
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -1929,6 +1929,11 @@
             if (!isEmailField(el)) return;
             const v = (el.value || '').trim();
             if (v.length > 0 && !EMAIL_RE.test(v)) {
+                // Give widget submit-gates a readable label (they list invalid
+                // fields by data-name/placeholder) so the message isn't blank.
+                if (!el.getAttribute('data-name') && !el.getAttribute('placeholder')) {
+                    el.setAttribute('data-name', 'a valid email address');
+                }
                 el.classList.add('invalid');
             } else {
                 el.classList.remove('invalid');

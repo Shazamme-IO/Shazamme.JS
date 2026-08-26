@@ -1,5 +1,13 @@
 (() => {
-    const version = '1.0.8';
+    const version = '1.1.4';
+
+    // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
+    // per page, regardless of which versioned filename a widget pins or how many
+    // widgets load it. First load wins; a second copy (any version) bails here
+    // before any binding, config fetch, or global write. Additive — a no-op on
+    // the first/only load, so single-SDK pages are behaviourally unchanged.
+    if (window.__shazammeSDKLoaded) return;
+    window.__shazammeSDKLoaded = version;
 
     const host = {
         resources: 'https://sdk.shazamme.io',
@@ -16,6 +24,15 @@
 
     const seekAdvertiser = '20690608';
     const defaultAccount = '92cc58fdf9714b6e938889c426fe78a8';
+
+    // Slow, per-site, rarely-changing READ actions that block page load and are
+    // safe to serve from a short-lived cache. submit() caches ONLY these — never
+    // job/search/data actions, which must stay live. Extend deliberately, and
+    // only with actions whose response is static config for a given site.
+    const SUBMIT_CACHE_ACTIONS = new Set([
+        'Get Candidate File Types',
+    ]);
+    const SUBMIT_CACHE_TTL = 900000; // 15 min
 
     let _s = {}
     let _ps = {}
@@ -410,27 +427,65 @@
                         return sender.bag(`${n}:${config.widgetId}-${config.elementId}:${k}`, v);
                     },
 
-                    config: (c) =>
-                        c === undefined ?
-                            sender.submit({
-                                action: "Get Widget Configuration",
-                                siteID: config.siteId,
-                                accountID: config.accountId || defaultAccount,
-                                elementID: config.elementId,
-                                pageName: config.page,
-                            }, false)
-                                .then( c => Promise.resolve(JSON.parse(c.configuration || null)) )
-                                .catch( () => Promise.resolve() )
-                            :
-                            sender.submit({
-                                action: "Set Widget Configuration",
-                                siteID: config.siteId,
-                                accountID: config.accountId || defaultAccount,
-                                elementID: config.elementId,
-                                pageName: config.page,
-                                widgetName: n,
-                                configuration: JSON.stringify(c),
-                            }, false),
+                    config: (c) => {
+                        // Per-widget saved configuration. The GET ("Get Widget
+                        // Configuration") hits the slow legacy PHP action
+                        // (~1-1.2s) on EVERY widget on EVERY page load, and on
+                        // most sites returns an empty config — so it was pure
+                        // dead weight on the critical path (2 widgets = ~2.4s).
+                        // Cache it in localStorage per site+element+page with a
+                        // short TTL so warm loads resolve instantly, bounded by a
+                        // 1.5s timeout so a cold first load never blocks the
+                        // widget. A Set writes through the cache (below) and the
+                        // TTL lets a changed config self-heal across browsers.
+                        const _wKey = `shazamme:wcfg:${config.siteId}:${config.elementId}:${config.page}`;
+                        const _wTtl = 300000; // 5 min
+
+                        if (c === undefined) {
+                            try {
+                                const _hit = JSON.parse(localStorage.getItem(_wKey) || 'null');
+                                if (_hit && (Date.now() - _hit.t) < _wTtl) {
+                                    return Promise.resolve(_hit.v);
+                                }
+                            } catch (e) {}
+
+                            return new Promise( (resolve) => {
+                                let _done = false;
+                                const _fin = (v) => { if (_done) { return; } _done = true; resolve(v); };
+                                const _t = setTimeout( () => _fin(undefined), 1500 );
+
+                                sender.submit({
+                                    action: "Get Widget Configuration",
+                                    siteID: config.siteId,
+                                    accountID: config.accountId || defaultAccount,
+                                    elementID: config.elementId,
+                                    pageName: config.page,
+                                }, false)
+                                    .then( r => {
+                                        clearTimeout(_t);
+                                        let v = null;
+                                        try { v = JSON.parse(r.configuration || null); } catch (e) {}
+                                        try { localStorage.setItem(_wKey, JSON.stringify({ v, t: Date.now() })); } catch (e) {}
+                                        _fin(v);
+                                    })
+                                    .catch( () => { clearTimeout(_t); _fin(undefined); } );
+                            });
+                        }
+
+                        // Set — write through the cache so the saved value is
+                        // reflected on the very next GET (editor + live site).
+                        try { localStorage.setItem(_wKey, JSON.stringify({ v: c, t: Date.now() })); } catch (e) {}
+
+                        return sender.submit({
+                            action: "Set Widget Configuration",
+                            siteID: config.siteId,
+                            accountID: config.accountId || defaultAccount,
+                            elementID: config.elementId,
+                            pageName: config.page,
+                            widgetName: n,
+                            configuration: JSON.stringify(c),
+                        }, false);
+                    },
 
                     log: (m, ...p) => {
                         sender.log(`got message from ${n}`, c);
@@ -767,14 +822,44 @@
 
         this.fetch = (c) => c?.isExternal ? this._extFetch(c) : this._dudaFetch(c);
 
-        this.submit = (d, regional = true) =>
-            this.site().then( s =>
+        this.submit = (d, regional = true) => {
+            // Cache ONLY allowlisted static-config reads (SUBMIT_CACHE_ACTIONS).
+            // Warm hit (fresh, < TTL) → resolve instantly, no network, so the
+            // slow legacy PHP call (~1s, e.g. Get Candidate File Types) drops off
+            // the critical path for return visitors. A cold/stale key returns the
+            // live promise UNCHANGED (waits for PHP, exact original response
+            // shape) and caches the result for next time — so this can never
+            // break a caller or serve stale job/search data.
+            const _key = (d && SUBMIT_CACHE_ACTIONS.has(d.action))
+                ? `shazamme:submit:${d.action}:${d.siteID || d.dudaSiteID || ''}:${d.language || ''}`
+                : null;
+
+            if (_key) {
+                try {
+                    const _hit = JSON.parse(localStorage.getItem(_key) || 'null');
+                    if (_hit && (Date.now() - _hit.t) < SUBMIT_CACHE_TTL) {
+                        return Promise.resolve(_hit.v);
+                    }
+                } catch (e) {}
+            }
+
+            const _live = this.site().then( s =>
                 $.ajax({
                     url: (regional && (s?.RegionalUrl || RegionalUrl)) || s?.ActionUrl || ActionUrl,
                     type: 'POST',
                     data: JSON.stringify(d),
                 })
             );
+
+            if (_key) {
+                _live.then(
+                    r => { try { localStorage.setItem(_key, JSON.stringify({ v: r, t: Date.now() })); } catch (e) {} },
+                    () => {}
+                );
+            }
+
+            return _live;
+        };
 
         this.firebase = () => {
             const create = (uname, secret) => new Promise( (resolve, reject) => {
@@ -1142,8 +1227,18 @@
                 return Promise.resolve();
             }, () => Promise.resolve() )
 
-        this.auth = (uname, uid, isOAuth = false) =>
-            sender.site().then( s =>
+        this.auth = (uname, uid, isOAuth = false, skipDocs = false) => {
+            const _k = `${uname}|${uid}|${skipDocs ? 'lite' : 'full'}`;
+
+            // Dedup concurrent auths (the multi-widget burst) by sharing one
+            // in-flight chain keyed by user. NOT cached across time, so the
+            // register poll still re-resolves each tick until the candidate appears.
+            if (sender._authP && sender._authKey === _k) {
+                return sender._authP;
+            }
+
+            sender._authKey = _k;
+            sender._authP = sender.site().then( s =>
                 sender.submit({
                     action: "Verify User",
                     siteID: s.siteID,
@@ -1196,6 +1291,12 @@
                             coverLetterFileName: null,
                         }});
 
+                        // Register poll passes skipDocs: it only needs `.candidate`
+                        // to trigger the redirect. Skip the heavy CV/cover/photo
+                        // document fetch here; the dashboard re-fetches it on load.
+                        if (skipDocs) {
+                            return Promise.resolve(s);
+                        }
 
                         return sender.submit({
                             action: 'Get Candidate Documents',
@@ -1223,7 +1324,12 @@
 
                     return Promise.resolve({...s});
                 })
-            );
+            )
+            .then( r => { sender._authP = null; return r; })
+            .catch( e => { sender._authP = null; return Promise.reject(e); });
+
+            return sender._authP;
+        };
 
         this.oauth = (p) => {
             sender.site().then(s => {
@@ -1372,35 +1478,14 @@
             console.error(m, ...p);
         }
 
-        this.tracer = () => new Promise( (resolve, reject) => {
-            const o = {
-                trace: (m) => sender._tracer?.push(m),
-            }
-
-            if (sender._tracer) {
-                resolve(o);
-            } else if (!window.Cookiebot || Cookiebot?.consent?.statistics) {
-                $.getScript("https://cloudfront.loggly.com/js/loggly.tracker-2.2.4.min.js",
-                    function() {
-                        sender._tracer = _LTracker;
-
-                        sender._tracer.push({
-                            'logglyKey': '70c3ea33-de10-495b-bb9d-574e90489d69',
-                            'sendConsoleErrors': false,
-                            'tag': 'loggly-jslogger',
-                        });
-
-                        resolve(o);
-                    },
-
-                    function() {
-                        reject();
-                    }
-                );
-            } else {
-                reject();
-            }
-        });
+        // Loggly client-side tracing removed (not required). Previously this
+        // lazy-loaded cloudfront.loggly.com/js/loggly.tracker; because it had no
+        // in-flight dedup, every widget on the page (5-6 typically) raced past
+        // the `sender._tracer` guard and each fired its own $.getScript, so the
+        // loggly script was fetched 5-6 times per page load. We now resolve with
+        // a no-op tracer that keeps the `.trace()` shape callers expect
+        // (`tracer().then(t => t?.trace(...))`) without any network or 3rd party.
+        this.tracer = () => Promise.resolve({ trace: () => {} });
 
         this.dragula = () => new Promise( (resolve, reject) => {
             $.getScript(`${host.resources}/dragula/dragula.min.js`,
@@ -1801,6 +1886,65 @@
                         }
                     });
                 }));
+            }
+        });
+    }
+
+    // ── Global input guards (fleet-wide: every widget, every site) ───────────
+    // Attached once per page regardless of how many SDK copies load.
+    //   1) Phone/mobile: strip anything that is not a digit or basic phone
+    //      formatting (+ ( ) - space) as the user types.
+    //   2) Email: on blur, flag invalid format with the `.invalid` class — the
+    //      same hook widget submit-gates already check.
+    if (typeof document !== 'undefined' && !window.__shazInputGuards) {
+        window.__shazInputGuards = true;
+
+        const PHONE_STRIP = /[^0-9+()\-\s]/g;
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        const fieldKey = (el) => `${el.id || ''} ${el.getAttribute('name') || ''}`.toLowerCase();
+
+        const isPhoneField = (el) => {
+            if (!el || el.tagName !== 'INPUT') return false;
+            const t = (el.getAttribute('type') || '').toLowerCase();
+            if (t === 'tel' || t === 'telephone') return true;
+            if (t === 'email' || t === 'password' || t === 'number') return false;
+            return /phone|mobile/.test(fieldKey(el));
+        };
+
+        const isEmailField = (el) => {
+            if (!el || el.tagName !== 'INPUT') return false;
+            const t = (el.getAttribute('type') || '').toLowerCase();
+            if (t === 'email') return true;
+            if (t === 'tel' || t === 'telephone' || t === 'password' || t === 'number') return false;
+            return /e-?mail/.test(fieldKey(el));
+        };
+
+        document.addEventListener('input', (e) => {
+            const el = e.target;
+            if (!isPhoneField(el)) return;
+            const before = el.value;
+            const cleaned = before.replace(PHONE_STRIP, '');
+            if (cleaned === before) return;
+            const start = el.selectionStart;
+            const removed = (before.slice(0, start).match(PHONE_STRIP) || []).length;
+            el.value = cleaned;
+            try { el.setSelectionRange(Math.max(0, start - removed), Math.max(0, start - removed)); } catch (_) {}
+        }, true);
+
+        document.addEventListener('focusout', (e) => {
+            const el = e.target;
+            if (!isEmailField(el)) return;
+            const v = (el.value || '').trim();
+            if (v.length > 0 && !EMAIL_RE.test(v)) {
+                // Give widget submit-gates a readable label (they list invalid
+                // fields by data-name/placeholder) so the message isn't blank.
+                if (!el.getAttribute('data-name') && !el.getAttribute('placeholder')) {
+                    el.setAttribute('data-name', 'a valid email address');
+                }
+                el.classList.add('invalid');
+            } else {
+                el.classList.remove('invalid');
             }
         });
     }

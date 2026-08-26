@@ -1,5 +1,13 @@
 (() => {
-    const version = '1.1.3';
+    const version = '1.1.4';
+
+    // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
+    // per page, regardless of which versioned filename a widget pins or how many
+    // widgets load it. First load wins; a second copy (any version) bails here
+    // before any binding, config fetch, or global write. Additive — a no-op on
+    // the first/only load, so single-SDK pages are behaviourally unchanged.
+    if (window.__shazammeSDKLoaded) return;
+    window.__shazammeSDKLoaded = version;
 
     const host = {
         resources: 'https://sdk.shazamme.io',

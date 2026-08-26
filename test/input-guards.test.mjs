@@ -6,7 +6,7 @@
 import { JSDOM } from 'jsdom';
 import fs from 'fs';
 
-const sdk = fs.readFileSync(new URL('../dist/sdk/shazamme-1.1.3.min.js', import.meta.url), 'utf8');
+const sdk = fs.readFileSync(new URL('../dist/sdk/shazamme-1.1.4.min.js', import.meta.url), 'utf8');
 
 const dom = new JSDOM(`<!doctype html><html><body>
   <input id="phoneNumber" type="text" value="">
@@ -25,7 +25,7 @@ const results = [];
 const assert = (name, cond) => results.push(`${cond ? 'PASS' : 'FAIL'}  ${name}`);
 
 assert('window.shazamme registered', !!window.shazamme);
-assert('version is 1.1.3', window.shazamme && window.shazamme._v === '1.1.3');
+assert('version is 1.1.4', window.shazamme && window.shazamme._v === '1.1.4');
 assert('input guard flag set', window.__shazInputGuards === true);
 
 const type = (el, val) => { el.value = val; el.dispatchEvent(new window.Event('input', { bubbles: true })); };

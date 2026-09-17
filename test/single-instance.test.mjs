@@ -1,5 +1,5 @@
 /*
- * Single-instance guard test for the SDK (shazamme.js 1.1.4+, Shazamme.JS#4).
+ * Single-instance guard test for the SDK (shazamme.js 1.1.5+, Shazamme.JS#4).
  * Reproduces the platform bug: multiple sitewide widgets each getScript their
  * own pinned shazamme-*.min.js, so the bundle executes twice on one page.
  * Asserts the version-agnostic top guard makes the second execution a no-op:
@@ -8,7 +8,7 @@
 import { JSDOM } from 'jsdom';
 import fs from 'fs';
 
-const sdk = fs.readFileSync(new URL('../dist/sdk/shazamme-1.1.4.min.js', import.meta.url), 'utf8');
+const sdk = fs.readFileSync(new URL('../dist/sdk/shazamme-1.1.5.min.js', import.meta.url), 'utf8');
 
 const makeDom = () => {
   const dom = new JSDOM(`<!doctype html><html><body></body></html>`, {
@@ -28,15 +28,15 @@ const assert = (name, cond) => results.push(`${cond ? 'PASS' : 'FAIL'}  ${name}`
   window.eval(sdk);
   const instanceA = window.shazamme;
   assert('1st load registers window.shazamme', !!instanceA);
-  assert('1st load version is 1.1.4', instanceA && instanceA._v === '1.1.4');
-  assert('1st load sets __shazammeSDKLoaded', window.__shazammeSDKLoaded === '1.1.4');
+  assert('1st load version is 1.1.5', instanceA && instanceA._v === '1.1.5');
+  assert('1st load sets __shazammeSDKLoaded', window.__shazammeSDKLoaded === '1.1.5');
   assert('1st load sets input guards', window.__shazInputGuards === true);
 
   let threw = false;
   try { window.eval(sdk); } catch (e) { threw = true; }
   assert('2nd load does not throw', !threw);
   assert('2nd load keeps the SAME instance (no re-init)', window.shazamme === instanceA);
-  assert('2nd load leaves version at 1.1.4', window.shazamme._v === '1.1.4');
+  assert('2nd load leaves version at 1.1.5', window.shazamme._v === '1.1.5');
 }
 
 // --- Scenario 2: the guard specifically short-circuits BEFORE side effects ---
@@ -51,7 +51,7 @@ const assert = (name, cond) => results.push(`${cond ? 'PASS' : 'FAIL'}  ${name}`
   assert('setup: input guards installed once', window.__shazInputGuards === true);
 
   delete window.__shazInputGuards;          // pretend side effects never ran
-  delete window['shazamme-1.1.4'];          // wipe the legacy instance guard key
+  delete window['shazamme-1.1.5'];          // wipe the legacy instance guard key
   // __shazammeSDKLoaded is intentionally LEFT set.
 
   let threw = false;

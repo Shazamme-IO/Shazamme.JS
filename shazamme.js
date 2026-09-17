@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.4';
+    const version = '1.1.5';
 
     // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
     // per page, regardless of which versioned filename a widget pins or how many
@@ -1110,26 +1110,26 @@
         this.currentUser = (refresh = false) => {
             this.trace('Warning: Use of the method currentUser() is deprecated. Please replace with the method user()');
 
-            let u = undefined;
-
-            try {
-                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
-            } catch {}
-
-            return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
-            || Promise.resolve();
+            return this.user(refresh);
         }
 
         this.user = (refresh = false) => {
+            if (this._session && !refresh) {
+                return Promise.resolve({...this._session});
+            }
+
             let u = undefined;
 
             try {
                 u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
             } catch {}
 
-            return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
+            if (localStorage._s && !u?.email) {
+                // Unreadable stored session (e.g. 'undefined' from an older build): drop it.
+                localStorage.removeItem('_s');
+            }
+
+            return (u?.email && sender.auth(u.email, u.firebaseUserID, u.isOAuth))
             || Promise.resolve();
         }
 
@@ -1245,7 +1245,7 @@
                     email: uname,
                     uid: uid,
                 }).then( r => {
-                    let p = r?.response?.items[0];
+                    let p = r?.response?.items?.[0];
 
                     if (!p) {
                         return Promise.resolve();
@@ -1319,6 +1319,12 @@
 
                     return Promise.resolve(s);
                 }).then( s => {
+                    if (!s) {
+                        // No user for this site: leave any in-memory session (register
+                        // poll, SEEK/LinkedIn) alone and never store the string 'undefined'.
+                        return Promise.resolve();
+                    }
+
                     sender._session = s;
                     localStorage._s = btoa(unescape(encodeURIComponent(JSON.stringify(s))));
 
@@ -1689,7 +1695,10 @@
             return _pr;
         };
 
-        this._userRoles = (s) => Promise.all([
+        // No session (e.g. a social sign-in with no candidate on this site yet):
+        // resolve to no roles instead of throwing on `s.is`, so auth() resolves
+        // undefined and ready()'s isOAuth branch can publish the isNew session.
+        this._userRoles = (s) => !s ? Promise.resolve([]) : Promise.all([
             s.is?.indexOf('candidate') >= 0 && sender.submit({
                     action: "Login Candidate",
                     siteID: s.siteID,
@@ -1699,7 +1708,7 @@
                     let c = r?.response?.items?.at(0);
 
                     return Promise.resolve(c && { candidate: {...c} });
-                }),
+                }).catch( () => Promise.resolve() ),
 
             s.is?.find( i => i.startsWith('client') ) && sender.client().then( c => c.submit({
                     action: "Get Clients",

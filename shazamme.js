@@ -53,7 +53,11 @@
         _r = j?.run || {};
 
         return j || {};
-    }, () => ({}) );
+    }, () => {
+        _g = null;
+
+        return null;
+    });
 
     function _init() {
         const ApiUrl = 'https://shazamme.io';
@@ -1635,8 +1639,14 @@
 
             // `sites` maps a site ID to the page names that also have a page-level
             // file, e.g. { "7480c32f": [] }. Unlisted sites make no request at all.
+            // Only persist a complete answer: a failed global or site fetch must not
+            // pin an empty config in localStorage for this visitor.
+            let _cacheable = true;
+
             _globalConfig()
                 .then( g => {
+                    if (!g) _cacheable = false;
+
                     const pages = g?.sites?.[sid];
 
                     if (!Array.isArray(pages)) return [];
@@ -1646,7 +1656,11 @@
                         ...(pages.includes(p) ? [fetch(`${host.resources}/js/site/${sid}/${p}/shazamme.json`)] : []),
                     ]);
                 })
-                .then( r => Promise.all(r.map( i => i.value?.ok && i.value.json() || Promise.resolve({}) )) )
+                .then( r => Promise.all(r.map( i => {
+                    if (!i.value?.ok) _cacheable = false;
+
+                    return i.value?.ok && i.value.json() || Promise.resolve({});
+                })) )
                 .then( r => {
                     let c = {};
 
@@ -1669,7 +1683,9 @@
                     });
 
                     sender._config[`${sid}_${p}`] = c;
-                    try { localStorage.setItem(_pcKey, JSON.stringify(c)); } catch (e) {}
+                    if (_cacheable) {
+                        try { localStorage.setItem(_pcKey, JSON.stringify(c)); } catch (e) {}
+                    }
                     resolve(c);
                 }, err => {
                     if (err.status >= 400 && err.status < 500) {

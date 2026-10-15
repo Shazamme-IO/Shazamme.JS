@@ -89,6 +89,28 @@ const load = (globalJson, files, getImpl) => {
 
   assert('global config failure does not throw', !threw);
   assert('global config failure makes no per-site request', fetched.length === 0);
+  assert('global config failure is not cached', window.localStorage.getItem('shazamme:pageconfig:7480c32f_home') === null);
+}
+
+// --- Listed site whose file fails to load: not cached, so the next visit retries ---
+{
+  const { window } = load({ sites: { '7480c32f': [] }, config: {} }, {});
+  await window.shazamme._pageConfig('7480c32f', 'home');
+
+  assert('failed site file is not cached', window.localStorage.getItem('shazamme:pageconfig:7480c32f_home') === null);
+}
+
+// --- Successful lookups are cached ---
+{
+  const { window } = load(
+    { sites: { '7480c32f': [] }, config: {} },
+    { [`${BASE}/7480c32f/shazamme.json`]: { config: { 'job-apply': { a: 1 } } } },
+  );
+  await window.shazamme._pageConfig('7480c32f', 'home');
+  await window.shazamme._pageConfig('aaaa1111', 'home');
+
+  assert('listed site config is cached', JSON.parse(window.localStorage.getItem('shazamme:pageconfig:7480c32f_home'))?.['job-apply']?.[0]?.a === 1);
+  assert('unlisted site empty result is cached', window.localStorage.getItem('shazamme:pageconfig:aaaa1111_home') === '{}');
 }
 
 console.log(results.join('\n'));

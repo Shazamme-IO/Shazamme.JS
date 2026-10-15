@@ -1,0 +1,116 @@
+{
+	"config": {
+		"job-apply": {
+			"fieldList": [
+				{
+					"fieldLabel": "Salutation",
+					"fieldName": "salutation",
+					"fieldType": "dropdown",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "First Name",
+					"fieldName": "firstName",
+					"fieldRequired": true,
+					"fieldType": "text"
+				},
+				{
+					"fieldLabel": "Last Name",
+					"fieldName": "surname",
+					"fieldRequired": true,
+					"fieldType": "text"
+				},
+				{
+					"fieldLabel": "Email",
+					"fieldName": "eMail",
+					"fieldRequired": true,
+					"fieldType": "text",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "Phone Number",
+					"fieldName": "phone",
+					"fieldRequired": true,
+					"fieldType": "text",
+					"fullRow": true
+				},
+				{
+					"fieldName": "separator"
+				},
+				{
+					"fieldLabel": "Resume",
+					"fieldName": "file",
+					"fieldRequired": true,
+					"showOnAuth": true,
+					"fileIsResume": true
+				},
+				{
+					"fieldLabel": "Cover Letter",
+					"fieldName": "file",
+					"showOnAuth": true,
+					"fileIsCover": true
+				},
+				{
+					"fieldName": "separator",
+					"showOnAuth": true
+				},
+				{
+					"fieldLabel": "I agree to the terms",
+					"fieldName": "",
+					"fieldRequired": true,
+					"fieldType": "checkbox",
+					"showOnAuth": true
+				}
+			]
+		},
+
+		"login-dialog": {
+			"fieldList": [
+				{
+					"fieldLabel": "Email:",
+					"fieldName": "uid",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "Password:",
+					"fieldName": "secret",
+					"fullRow": true
+				},
+				{
+					"fieldLabel": "Forgot password?",
+					"fieldName": "button",
+					"fullRow": true,
+					"buttonLink": "/forgot-password"
+				},
+				{
+					"fieldLabel": "Read our privacy policy",
+					"fieldName": "button",
+					"fullRow": true,
+					"buttonLink": "/privacy-policy"
+				}
+			]
+		}
+	},
+
+	"trace": {
+		"application-form": {
+			"warn": [
+				{
+					"useSingleJob": true
+				}
+			],
+
+			"error": [
+			],
+
+			"trace": [
+			]
+		}
+	},
+
+	"run": {
+		"job-results": [
+			"$(window).on('scroll', function() { $('[data-widget-id={{widgetId}}]').attr('style', 'height: auto !important; visibility: visible !important'); } );"
+		]
+	}
+}

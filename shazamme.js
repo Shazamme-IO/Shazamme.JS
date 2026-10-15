@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.4';
+    const version = '1.1.6';
 
     // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
     // per page, regardless of which versioned filename a widget pins or how many
@@ -40,6 +40,20 @@
     let _tr = {}
     let _b = {}
     let _r  = {}
+    let _g = null
+
+    // Global page-config (js/site/shazamme.json), fetched ONCE and shared by ready()
+    // and _pageConfigRun(). Its `sites` map lists the only sites that have their own
+    // shazamme.json, so every other site skips a request that would 404.
+    const _globalConfig = () => _g = _g || Promise.resolve(
+        $.get(`${host.resources}/js/site/shazamme.json`)
+    ).then( j => {
+        _c = j?.config || {};
+        _tr = j?.trace || {};
+        _r = j?.run || {};
+
+        return j || {};
+    }, () => ({}) );
 
     function _init() {
         const ApiUrl = 'https://shazamme.io';
@@ -177,23 +191,11 @@
             sender._sid = sender._sid || sid;
 
             // Populate per-site config in the background — do NOT block ready() on it.
-            // The per-site shazamme.json files 404 on most sites, adding ~360ms to
-            // ready() for nothing. Result is cached so the 404s fire at most once.
             sender._pageConfig(sid, p);
 
             window[`shazamme-${version}-ready`] = _ready = new Promise( r => {
                 Promise.all([
-                    $.get(`${host.resources}/js/site/shazamme.json`)
-                        .then( j => {
-                            _c = j?.config || {};
-                            _tr = j?.trace || {};
-                            _r = j?.run || {};
-
-                            return Promise.resolve();
-                        },
-                        () => {
-                            return Promise.resolve();
-                        }),
+                    _globalConfig(),
 
                     sender.site(),
 
@@ -1631,12 +1633,20 @@
                 }
             } catch (e) {}
 
-            Promise
-                .allSettled([
-                    fetch(`${host.resources}/js/site/${sid}/shazamme.json`),
-                    fetch(`${host.resources}/js/site/${sid}/${p}/shazamme.json`),
-                ])
-                .then( r => Promise.all(r.map( i => i.value.ok && i.value.json() || Promise.resolve({}) )) )
+            // `sites` maps a site ID to the page names that also have a page-level
+            // file, e.g. { "7480c32f": [] }. Unlisted sites make no request at all.
+            _globalConfig()
+                .then( g => {
+                    const pages = g?.sites?.[sid];
+
+                    if (!Array.isArray(pages)) return [];
+
+                    return Promise.allSettled([
+                        fetch(`${host.resources}/js/site/${sid}/shazamme.json`),
+                        ...(pages.includes(p) ? [fetch(`${host.resources}/js/site/${sid}/${p}/shazamme.json`)] : []),
+                    ]);
+                })
+                .then( r => Promise.all(r.map( i => i.value?.ok && i.value.json() || Promise.resolve({}) )) )
                 .then( r => {
                     let c = {};
 

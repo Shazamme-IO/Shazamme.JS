@@ -28,6 +28,19 @@ The live SDK is the three shared files `js/shazamme-1.0.{1,2,3}.min.js`
 Re-upload the previous `dist/sdk/shazamme-<prev>.min.js` over the 3 shared files
 + invalidate. Keep the prior build committed so rollback bytes are known.
 
+## Per-site page config (1.1.6+)
+`shazamme.json` here is the global config at `js/site/shazamme.json`. Its `sites`
+map lists the ONLY sites that have their own config, so every other site skips
+the per-site request (it used to 404 on every site, every page):
+
+    "sites": { "<dudaSiteId>": ["<page>", ...] }
+
+- Site file `site/<id>/shazamme.json` here → `js/site/<id>/shazamme.json` in S3.
+- List a page name only if `js/site/<id>/<page>/shazamme.json` also exists.
+- Upload the site file BEFORE adding the site to `sites` (old SDKs ignore `sites`).
+- Config is cached in each visitor's `localStorage` (`shazamme:pageconfig:*`),
+  so returning visitors keep the previous config until their storage is cleared.
+
 ## Source tracking
 `master` must equal what is live in prod. Land SDK work via PR → master; do not
 leave shipped builds only on feature branches.

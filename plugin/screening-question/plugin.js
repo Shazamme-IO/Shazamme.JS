@@ -1,9 +1,46 @@
 (() => {
-    const Version = '1.0.9';
+    const Version = '1.0.10';
 
     const Message = {
         submit: 'screening-question-apply',
     }
+
+    // Page-context tokens for a question's defaultAnswer. A Text / Text Block
+    // question whose default holds one of these is an AUTO-FIELD: it renders as
+    // a hidden input pre-filled with the resolved value and submits as a normal
+    // Text answer, so its dynamic map carries the page context to the ATS
+    // (e.g. {{page.url}} -> Bullhorn Lead.customText3 "Page URL").
+    //
+    // Why a visible question and not hide=true: the questions feed filters
+    // hidden questions out before the browser sees them (hide=false in both the
+    // PHP and v2 feeds) and PHP fills their static default server-side, so a
+    // page-dependent value can only ride on a question that reaches the page.
+    //
+    // `page.url` deliberately drops the query string and hash: Bullhorn custom
+    // text fields cap at 100 characters and UTM-laden hrefs blow past that.
+    // Use `page.href` when the full address is wanted.
+    const PageTokens = {
+        'page.url': () => `${window.location.origin}${window.location.pathname}`,
+        'page.href': () => window.location.href,
+        'page.path': () => window.location.pathname,
+        'page.host': () => window.location.hostname,
+        'page.title': () => document.title,
+        'page.referrer': () => document.referrer,
+    };
+
+    const PAGE_TOKEN = /\{\{\s*(page\.[a-z]+)\s*\}\}/gi;
+
+    const hasPageToken = (s) =>
+        typeof s === 'string' && [...s.matchAll(PAGE_TOKEN)].some( m => PageTokens[m[1].toLowerCase()] );
+
+    const resolvePageTokens = (s) =>
+        String(s).replace(PAGE_TOKEN, (m, k) => {
+            const f = PageTokens[k.toLowerCase()];
+            try { return f ? (f() || '') : m; } catch { return ''; }
+        });
+
+    const escapeAttr = (s) =>
+        String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     shazamme
         .style(`https://sdk.shazamme.io/js/plugin/screening-question/${Version}/plugin.css?_=1775795897238`)
@@ -668,6 +705,22 @@
             this._questionEl = (q) => {
                 if (q.parentQuestionID?.length > 0 && !(q.options?.length > 0)) {
                     return '';
+                }
+
+                // Auto-field: see PageTokens. Hidden input, no label, value resolved
+                // now (not at submit) so _recordAnswers reads it like any text answer.
+                // `q.length` is the admin's cap on the question, honoured as a slice.
+                if ((q.questionType === 'Text' || q.questionType === 'Text Block') && hasPageToken(q.defaultAnswer)) {
+                    const resolved = resolvePageTokens(q.defaultAnswer);
+                    const value = q.length > 0 ? resolved.slice(0, q.length) : resolved;
+
+                    // Plain wrapper on purpose: .input-field-container carries display:block
+                    // in the critical CSS, which would override a `hidden` attribute.
+                    return `
+                        <div class="sq-auto-field" data-rel="auto-field" style="display:none">
+                            <input type="hidden" data-qtype="text" data-qid="${q.screeningQuestionID}" value="${escapeAttr(value)}" />
+                        </div>
+                    `;
                 }
 
                 switch (q.questionType) {

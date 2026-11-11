@@ -1,8 +1,12 @@
 {
 	"options": [
 		{
+			"value": "https://sdk.shazamme.io/js/plugin/screening-question/1.0.10/plugin.min.js",
+			"label": "v1.0.10 (Latest)"
+		},
+		{
 			"value": "https://sdk.shazamme.io/js/plugin/screening-question/1.0.9/plugin.min.js",
-			"label": "v1.0.9 (Latest)"
+			"label": "v1.0.9"
 		},
 		{
 			"value": "https://sdk.shazamme.io/js/plugin/screening-question/1.0.8/plugin.min.js",

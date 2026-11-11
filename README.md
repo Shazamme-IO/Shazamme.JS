@@ -608,6 +608,25 @@ Each section takes the unique identifier of the widget as supplied to `shazamme.
 ```
 Each section of a Shazamme.JSON file can contain any number of uniquely identifiable widgets. Shazamme.JSON files can also be placed at any level of a site (as discussed above), and lower levels will supercede any level which came before.
 
+## Screening Question Plugin: page tokens (v1.0.10+)
+
+`plugin/screening-question` renders a form's screening questions. A **Text** or **Text Block** question whose *Default Answer* contains a page token becomes an **auto-field**: it renders as a hidden input, pre-filled with the resolved value, and submits as a normal text answer. Map the question to an ATS field in the Form Questions Map (for example Bullhorn `Lead.customText3`) and every submission carries the page it came from.
+
+| Token | Resolves to | Example |
+|:--|:--|:--|
+| `{{page.url}}` | origin + path, no query string or hash | `https://www.client.com/employers/contractors` |
+| `{{page.href}}` | the full address incl. query and hash | `https://www.client.com/employers?utm_source=x` |
+| `{{page.path}}` | path only | `/employers/contractors` |
+| `{{page.host}}` | host name | `www.client.com` |
+| `{{page.title}}` | `document.title` | `Hire Contractors \| Client` |
+| `{{page.referrer}}` | `document.referrer` | `https://www.google.com/` |
+
+Notes:
+- Tokens may sit inside other text (`Source: {{page.title}}`) and whitespace inside the braces is tolerated.
+- The question must be **visible** (Hide unticked). Hidden questions never reach the browser (the questions feed filters them) and get their static default from PHP, so a page-dependent value cannot ride on one.
+- `{{page.url}}` drops the query string on purpose: Bullhorn custom text fields cap at 100 characters. Set the question *Length* to the ATS field length and the plugin trims the value to it.
+- A default that holds no known `page.*` token renders as before (a normal visible question).
+
 ## Migrating Widgets to Shazamme.JS
 
 Converting a Shazamme widget into a Shazamme.JS consumer can be completed in just a few steps at its most basic.

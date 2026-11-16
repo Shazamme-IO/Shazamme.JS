@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.6';
+    const version = '1.1.7';
 
     // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
     // per page, regardless of which versioned filename a widget pins or how many
@@ -34,6 +34,58 @@
     ]);
     const SUBMIT_CACHE_TTL = 900000; // 15 min
 
+    // v2 (Shazamme Backend) site resolution. A site that exists only in v2 is
+    // unknown to Vinyl ("Duda SiteID not found"), so site() asks v2 first.
+    const V2_ORIGIN = 'https://api.shazamme.com';
+    const V2_TIMEOUT = 2500;
+    const SITE_CACHE_VERSION = 'v3';
+    const SITE_CACHE_TTL_V2 = 3600000;     // 1h: a v2 answer carries the full site row
+    const SITE_CACHE_TTL_VINYL = 600000;   // 10m: marker only, skips the v2 probe for Vinyl sites
+
+    // Firebase auto-init (only when the page has not initialised Firebase itself).
+    // Default is the shared Shazamme project the demo/client sites already use.
+    const FIREBASE_VERSION = '8.6.1';
+    const FIREBASE_BASE = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/`;
+    const FIREBASE_LOAD_CAP = 5000;
+    const FIREBASE_DEFAULT_CONFIG = Object.freeze({
+        apiKey: 'AIzaSyASopyUxH00jNPMGndb0wjr3Vpn_H6jVWg',
+        authDomain: 'shazamme-2c292.firebaseapp.com',
+        databaseURL: 'https://shazamme-2c292.firebaseio.com',
+        projectId: 'shazamme-2c292',
+        storageBucket: 'shazamme-2c292.appspot.com',
+        messagingSenderId: '978113186027',
+        appId: '1:978113186027:web:e6d188802029a4fa8fd6ae',
+        measurementId: 'G-FNV0THSHMQ',
+    });
+    const FIREBASE_CONFIG_KEYS = ['apiKey', 'authDomain', 'databaseURL', 'projectId', 'storageBucket', 'messagingSenderId', 'appId', 'measurementId'];
+
+    // Pull a web config out of a legacy `firebase.initializeApp({...})` snippet
+    // (Site.dudaFirebaseScript) WITHOUT evaluating it: string literals only.
+    const parseFirebaseScript = (script) => {
+        if (typeof script !== 'string' || !script) return null;
+
+        const cfg = {};
+
+        FIREBASE_CONFIG_KEYS.forEach( k => {
+            const m = script.match(new RegExp(`['"]?${k}['"]?\\s*:\\s*(['"])([^'"]*)\\1`));
+
+            if (m) cfg[k] = m[2];
+        });
+
+        return cfg.apiKey && cfg.projectId ? cfg : null;
+    };
+
+    const _loadScript = (src) => new Promise( (resolve, reject) => {
+        const el = document.createElement('script');
+
+        el.src = src;
+        el.async = false;
+        el.onload = () => resolve();
+        el.onerror = () => reject(new Error(`Unable to load ${src}`));
+
+        document.head.appendChild(el);
+    });
+
     let _s = {}
     let _ps = {}
     let _c = {}
@@ -67,6 +119,79 @@
         const sender = this;
 
         let _ready = window[`shazamme-${version}-ready`];
+
+        // Initialise Firebase when the page has not. Resolves true once an app exists,
+        // false if disabled/unavailable; never rejects and never holds ready() past
+        // FIREBASE_LOAD_CAP. A page that initialises Firebase itself is never touched.
+        // Config precedence: window.__shazammeFirebase > site.firebaseConfig >
+        // site.dudaFirebaseScript > shared shazamme-2c292 default.
+        this._ensureFirebase = () => {
+            if (this._fbp) return this._fbp;
+
+            const hasApp = () => !!window.firebase?.apps?.length;
+
+            if (window.__shazammeNoFirebase === true || hasApp()) {
+                return this._fbp = Promise.resolve(hasApp());
+            }
+
+            // Wait for DOMContentLoaded: a body-end `firebase.initializeApp` runs before it,
+            // and initialising first would make that page script throw "duplicate app".
+            const domReady = new Promise( r => {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => r(), { once: true });
+                } else {
+                    r();
+                }
+            });
+
+            const loaded = domReady.then( () => {
+                if (hasApp() || window.firebase?.auth) return;
+
+                return _loadScript(`${FIREBASE_BASE}firebase-app.js`)
+                    .then( () => _loadScript(`${FIREBASE_BASE}firebase-auth.js`) );
+            });
+
+            const config = () => {
+                const o = window.__shazammeFirebase;
+
+                if (o?.apiKey && o?.projectId) return Promise.resolve(o);
+
+                return sender.site().then( s =>
+                    (s?.firebaseConfig?.apiKey && s.firebaseConfig.projectId && s.firebaseConfig)
+                    || parseFirebaseScript(s?.dudaFirebaseScript)
+                    || FIREBASE_DEFAULT_CONFIG
+                , () => FIREBASE_DEFAULT_CONFIG );
+            };
+
+            const init = Promise.all([loaded, domReady.then(config)]).then( ([, cfg]) => {
+                if (!hasApp()) {
+                    try {
+                        firebase.initializeApp({ ...cfg });
+                    } catch (ex) {
+                        if (ex?.code !== 'app/duplicate-app') throw ex;
+                    }
+                }
+
+                const have = window.firebase.apps[0]?.options?.projectId;
+
+                if (have && have !== cfg.projectId) {
+                    sender.warn(`Page initialised Firebase project "${have}"; Shazamme expects "${cfg.projectId}". Remove the page's own Firebase init to use the site default.`);
+                }
+
+                return hasApp();
+            }).catch( ex => {
+                sender.warn('Shazamme could not initialise Firebase.', ex);
+
+                return false;
+            });
+
+            this._fbInit = init;
+
+            return this._fbp = Promise.race([
+                init,
+                new Promise( r => setTimeout( () => r(hasApp()), FIREBASE_LOAD_CAP )),
+            ]);
+        };
 
         this.ready = (sid, p) => {
             if (_ready) {
@@ -197,6 +322,8 @@
             // Populate per-site config in the background — do NOT block ready() on it.
             sender._pageConfig(sid, p);
 
+            const fbReady = sender._ensureFirebase();
+
             window[`shazamme-${version}-ready`] = _ready = new Promise( r => {
                 Promise.all([
                     _globalConfig(),
@@ -204,6 +331,8 @@
                     sender.site(),
 
                     handleOAuth(),
+
+                    fbReady,
                 ])
                 .then( () => {
                     r();
@@ -299,7 +428,7 @@
                     if (campaignContent?.length > 0) sessionStorage.referralContent = campaignContent;
             }
 
-            if (window.firebase) {
+            const bindFirebaseAuth = () => {
                 try {
                     firebase.auth().onAuthStateChanged( u => {
                         if (u) {
@@ -331,6 +460,14 @@
                 } catch (ex) {
                     sender.warn('Firebase was loaded but is not available. Please verify its configuration.', ex);
                 }
+            };
+
+            // A page that already initialised Firebase binds synchronously, exactly as
+            // before; otherwise bind once _ensureFirebase has initialised it.
+            if (window.firebase?.apps?.length) {
+                bindFirebaseAuth();
+            } else {
+                fbReady.then( () => sender._fbInit ).then( ok => ok && bindFirebaseAuth() );
             }
 
             if (window.clarity) {
@@ -743,11 +880,24 @@
                         return sender._site;
                     };
 
-                    // NOTE: key bumped to v2 in 1.0.7 — invalidates staging-origin
-                    // site objects that 1.0.6 poisoned into localStorage for any site
-                    // with a staging region record (e.g. legalpeople), so they
-                    // re-resolve against prod on the next load.
-                    const cacheKey = `shazamme:site:v2:${this._sid}`;
+                    // Versioned per-Duda-id cache. v3 supersedes v2 (which could hold
+                    // 1.0.6's poisoned staging answers), so old entries never apply.
+                    const cacheKey = `shazamme:site:${SITE_CACHE_VERSION}:${this._sid}`;
+
+                    const readCache = () => {
+                        try {
+                            const e = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+                            const ttl = e?.src === 'v2' ? SITE_CACHE_TTL_V2 : SITE_CACHE_TTL_VINYL;
+
+                            return e && (Date.now() - e.t) < ttl ? e : null;
+                        } catch (e) {
+                            return null;
+                        }
+                    };
+
+                    const writeCache = (entry) => {
+                        try { localStorage.setItem(cacheKey, JSON.stringify({ ...entry, t: Date.now() })); } catch (e) {}
+                    };
 
                     // No-hang guard: the last-resort probe has no error path; if nothing
                     // resolves in 8s, fall back to a staging default so site() never hangs.
@@ -763,14 +913,12 @@
                     }
 
                     // 2) Per-site cache from an earlier resolve — instant.
-                    try {
-                        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-                        if (cached && cached.siteID) {
-                            sender._site = cached;
-                            resolve(sender._site);
-                            return;
-                        }
-                    } catch (e) {}
+                    const cached = readCache();
+                    if (cached?.src === 'v2' && cached.site?.siteID) {
+                        sender._site = cached.site;
+                        resolve(sender._site);
+                        return;
+                    }
 
                     // Last-resort: the original prod-first probe (unchanged), kept so
                     // no site can regress if the fast paths don't apply.
@@ -819,7 +967,60 @@
                     //    to the prod-first probe, which returns the correct live site.
                     //    Per-region origin resolution will be reinstated against PROD
                     //    once prod's region records are populated (they are empty today).
-                    legacyProbe();
+                    // 3) Ask v2 first. Sites that exist only in v2 are unknown to Vinyl, so
+                    //    without this every widget calls Vinyl and renders empty. v2 answers
+                    //    in ~100-200ms (404 "Site not found" for a Vinyl-only site). It runs
+                    //    BEFORE Vinyl, not in parallel: a parallel Vinyl call would be wasted
+                    //    (and fire the staging fallback) for every v2 site. A Vinyl site pays
+                    //    one short call, then a 10 min marker skips it. Any error/timeout
+                    //    falls through to Vinyl unchanged and is never cached.
+                    if (cached?.src === 'vinyl') {
+                        legacyProbe();
+                        return;
+                    }
+
+                    $.ajax({
+                        url: `${V2_ORIGIN}/Job-Listing/src/php/regional/actions`,
+                        type: 'POST',
+                        timeout: V2_TIMEOUT,
+                        data: JSON.stringify({
+                            action: 'Get Site ID',
+                            dudaSiteID: this._sid,
+                        }),
+                    }).then( res => {
+                        const item = res?.status && res.response?.items?.[0];
+
+                        if (item?.siteID) {
+                            sender._site = {
+                                ...item,
+                                ApiUrl: V2_ORIGIN,
+                                ActionUrl: `${V2_ORIGIN}/Job-Listing/src/php/actions`,
+                                RegionalUrl: `${V2_ORIGIN}/Job-Listing/src/php/regional/actions`,
+                                documentUri: `${V2_ORIGIN}/candidate-document/`,
+                            };
+
+                            writeCache({ src: 'v2', site: sender._site });
+                            resolve(sender._site);
+
+                            return;
+                        }
+
+                        legacyProbe();
+                    }, xhr => {
+                        // v2 answers an unknown site with HTTP 404 + {status:false}: a definite
+                        // "not v2", so remember it. Anything else (timeout, 5xx, network) is not.
+                        let body = xhr?.responseJSON;
+
+                        if (!body && xhr?.responseText) {
+                            try { body = JSON.parse(xhr.responseText); } catch (e) {}
+                        }
+
+                        if (xhr?.status === 404 && body?.status === false) {
+                            writeCache({ src: 'vinyl' });
+                        }
+
+                        legacyProbe();
+                    });
                 });
             }
 

@@ -44,3 +44,24 @@ the per-site request (it used to 404 on every site, every page):
 ## Source tracking
 `master` must equal what is live in prod. Land SDK work via PR → master; do not
 leave shipped builds only on feature branches.
+
+## SDK 1.1.7 — v2 site resolution + Firebase auto-init (new file `shazamme-1.0.4.min.js`)
+Build: `npm run build:sdk` → `dist/sdk/shazamme-1.1.7.min.js`. Unlike 1.1.2–1.1.6 this is
+NOT copied over `shazamme-1.0.{1,2,3}.min.js`; it ships as a NEW file so no live widget changes
+until a widget is pointed at it.
+
+    B=s3://shazamme.io-us-east-1-public-file
+    # 1. stage (zero risk to live)
+    aws s3 cp dist/sdk/shazamme-1.1.7.min.js $B/js/plugin/sdk-test/shazamme-1.1.7-test.min.js \
+      --profile sdk-deployer --content-type application/javascript --cache-control "public, max-age=300"
+    # 2. after canary is green: publish as the new versioned file
+    aws s3 cp dist/sdk/shazamme-1.1.7.min.js $B/js/shazamme-1.0.4.min.js \
+      --profile sdk-deployer --content-type application/javascript --cache-control "public, max-age=300"
+    aws cloudfront create-invalidation --distribution-id E1NO6IQHVJQ8NV --paths "/js/shazamme-1.0.4.min.js" --profile sdk-deployer
+    # verify
+    curl -s https://sdk.shazamme.io/js/shazamme-1.0.4.min.js | grep -o 'const version="[^"]*"'
+
+Site resolution order: `window.__shazammeSite` → fresh `shazamme:site:v3:<dudaId>` cache →
+v2 (`api.shazamme.com`, 2.5s timeout) → Vinyl (unchanged). Firebase: skipped if the page already
+initialised an app or `window.__shazammeNoFirebase === true`; else config =
+`window.__shazammeFirebase` > `site.firebaseConfig` > `site.dudaFirebaseScript` > shared `shazamme-2c292`.

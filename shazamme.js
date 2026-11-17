@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.6';
+    const version = '1.1.7';
 
     // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
     // per page, regardless of which versioned filename a widget pins or how many
@@ -100,6 +100,7 @@
                                         sender.auth(k.response.email, k.response.firebaseUserID, true).then( s => {
                                             if (s) {
                                                 sender.pub(message.auth, s);
+                                                resolve();
                                             } else {
                                                 sender._session = {
                                                     isOAuth: true,
@@ -115,6 +116,10 @@
                                                 sender.pub(message.auth, {...sender._session});
                                                 resolve();
                                             }
+                                        }, ex => {
+                                            sender.warn('Could not verify the Seek applicant.', ex);
+                                            sender.pub(message.auth);
+                                            resolve();
                                         });
                                     } else {
                                         sender._session = {
@@ -165,6 +170,9 @@
 
                                             sender.pub(message.auth, {...sender._session});
                                         }
+                                    }, ex => {
+                                        sender.warn('Could not verify the LinkedIn user.', ex);
+                                        sender.pub(message.auth);
                                     });
                                 } else {
                                     sender._session = {
@@ -323,6 +331,10 @@
 
                                     sender.pub(message.auth, {...sender._session});
                                 }
+                            }, ex => {
+                                // Never leave widgets waiting on a session that will not arrive.
+                                sender.warn('Could not verify the signed-in user.', ex);
+                                sender.pub(message.auth);
                             });
                         } else {
                             sender.pub(message.auth);
@@ -1116,26 +1128,32 @@
         this.currentUser = (refresh = false) => {
             this.trace('Warning: Use of the method currentUser() is deprecated. Please replace with the method user()');
 
-            let u = undefined;
-
-            try {
-                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
-            } catch {}
-
-            return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
-            || Promise.resolve();
+            return this.user(refresh);
         }
 
         this.user = (refresh = false) => {
             let u = undefined;
 
             try {
-                u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
-            } catch {}
+                if (localStorage._s !== undefined) {
+                    u = JSON.parse(decodeURIComponent(escape(atob(localStorage._s))));
+
+                    if (!u?.email) {
+                        throw new Error('stored session has no email');
+                    }
+                }
+            } catch {
+                // A corrupt stored session (e.g. the literal "undefined" that
+                // 1.1.6 wrote for first-time OAuth users) is no session.
+                u = undefined;
+
+                try { localStorage.removeItem('_s'); } catch {}
+            }
 
             return (this._session && !refresh && Promise.resolve({...this._session}))
-            || (localStorage._s && sender.auth(u.email, u?.firebaseUserID, u?.isOAuth))
+            || (u?.email && sender.auth(u.email, u.firebaseUserID, u.isOAuth))
+            // A first-time OAuth session is never stored, so there is nothing to refresh it against.
+            || (this._session?.isNew && Promise.resolve({...this._session}))
             || Promise.resolve();
         }
 
@@ -1251,7 +1269,15 @@
                     email: uname,
                     uid: uid,
                 }).then( r => {
-                    let p = r?.response?.items[0];
+                    let items = r?.response?.items;
+
+                    // Only a real items array is an answer. Anything else is a
+                    // failed lookup: reject (as 1.1.6 did) and keep any session.
+                    if (!Array.isArray(items)) {
+                        return Promise.reject(new Error('Verify User returned no items'));
+                    }
+
+                    let p = items[0];
 
                     if (!p) {
                         return Promise.resolve();
@@ -1325,6 +1351,28 @@
 
                     return Promise.resolve(s);
                 }).then( s => {
+                    // No row from "Verify User" = no session. Spreading undefined
+                    // used to hand widgets an empty {} that looked like a login.
+                    // A first-time OAuth session for this email lives only in
+                    // memory (see onAuthStateChanged) and must survive a re-check.
+                    if (!s) {
+                        // Seek / LinkedIn first-time sessions carry no firebaseUserID.
+                        const pending = isOAuth
+                            && sender._session?.isNew
+                            && (!sender._session.firebaseUserID || sender._session.firebaseUserID === uid)
+                            && sender._session.email?.toLowerCase() === String(uname).toLowerCase()
+                            ? sender._session
+                            : undefined;
+
+                        if (!pending) {
+                            delete sender._session;
+                        }
+
+                        try { localStorage.removeItem('_s'); } catch {}
+
+                        return Promise.resolve(pending && {...pending});
+                    }
+
                     sender._session = s;
                     localStorage._s = btoa(unescape(encodeURIComponent(JSON.stringify(s))));
 
@@ -1715,8 +1763,9 @@
             return _pr;
         };
 
+        // `s` is undefined for a first-time OAuth user ("Verify User" has no row yet).
         this._userRoles = (s) => Promise.all([
-            s.is?.indexOf('candidate') >= 0 && sender.submit({
+            s?.is?.indexOf('candidate') >= 0 && sender.submit({
                     action: "Login Candidate",
                     siteID: s.siteID,
                     eMail: s.email,
@@ -1727,7 +1776,7 @@
                     return Promise.resolve(c && { candidate: {...c} });
                 }),
 
-            s.is?.find( i => i.startsWith('client') ) && sender.client().then( c => c.submit({
+            s?.is?.find( i => i.startsWith('client') ) && sender.client().then( c => c.submit({
                     action: "Get Clients",
                     siteID: s.siteID,
                     clientUserID: s.id,

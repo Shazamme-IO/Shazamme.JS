@@ -19,6 +19,8 @@ const V2_ID = '13444da0-0f4c-4bde-89c3-5f8d3202623a';
 const CACHE_KEY = 'shazamme:site:v2only:d4aff204';
 
 const results = [];
+const pos = (calls, url) => calls.findIndex((c) => c === url);
+const asked = (calls, url) => pos(calls, url) !== -1;
 const assert = (name, cond) => results.push(`${cond ? 'PASS' : 'FAIL'}  ${name}`);
 
 const notFound = { status: false, response: 'Duda SiteID not found', request: 'Get Site ID' };
@@ -60,7 +62,7 @@ const load = (routes, { storage = {}, baked } = {}) => {
 
   assert(`version is ${VERSION}`, window.shazamme._v === VERSION);
   assert('Vinyl site resolves from Vinyl', s.siteID === 'vinyl-site');
-  assert('Vinyl site never asks v2', !calls.includes(V2));
+  assert('Vinyl site never asks v2', !asked(calls, V2));
 }
 
 // --- Vinyl knows it but it is not live: staging as before, v2 never asked ---
@@ -72,7 +74,7 @@ const load = (routes, { storage = {}, baked } = {}) => {
   const s = await window.shazamme.site();
 
   assert('not-live Vinyl site still goes to staging', s.siteID === 'staging-site');
-  assert('not-live Vinyl site never asks v2', !calls.includes(V2));
+  assert('not-live Vinyl site never asks v2', !asked(calls, V2));
 }
 
 // --- Vinyl does not know it, v2 does: v2 origin, staging never asked, cached ---
@@ -87,8 +89,8 @@ const load = (routes, { storage = {}, baked } = {}) => {
   assert('v2-only site resolves to its v2 siteID', s.siteID === V2_ID);
   assert('v2-only site uses the v2 API origin', s.ApiUrl === 'https://api.shazamme.com' && s.ActionUrl === 'https://api.shazamme.com/Job-Listing/src/php/actions');
   assert('v2-only site keeps v2 row fields', s.businessName === 'MW Migration');
-  assert('Vinyl asked before v2', calls.indexOf(VINYL) === 0 && calls.indexOf(V2) === 1);
-  assert('v2-only site never falls to staging', !calls.includes(STAGING));
+  assert('Vinyl asked before v2', pos(calls, VINYL) === 0 && pos(calls, V2) === 1);
+  assert('v2-only site never falls to staging', !asked(calls, STAGING));
   assert('v2 answer cached', cached?.site?.siteID === V2_ID && typeof cached.t === 'number');
 }
 
@@ -110,7 +112,7 @@ const load = (routes, { storage = {}, baked } = {}) => {
   }, { storage: { [CACHE_KEY]: { site, t: Date.now() - 2 * 3600000 } } });
   const s = await window.shazamme.site();
 
-  assert('stale cache is ignored', s.siteID === V2_ID && calls.includes(VINYL));
+  assert('stale cache is ignored', s.siteID === V2_ID && asked(calls, VINYL));
 }
 
 // --- Neither knows it: staging fallback exactly as before ---
@@ -124,7 +126,7 @@ const load = (routes, { storage = {}, baked } = {}) => {
 
   assert('unknown site still falls back to staging', s.siteID === 'staging-site' && s.ApiUrl === 'https://staging.shazamme.io');
   assert('nothing cached for an unknown site', window.localStorage.getItem(CACHE_KEY) === null);
-  assert('v2 asked once before staging', calls.indexOf(V2) >= 0 && calls.indexOf(V2) < calls.indexOf(STAGING));
+  assert('v2 asked once before staging', pos(calls, V2) >= 0 && pos(calls, V2) < pos(calls, STAGING));
 }
 
 // --- v2 errors or answers without a siteID: staging fallback ---

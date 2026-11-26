@@ -129,7 +129,7 @@ for (const [name, route] of [
   const post = calls.find((c) => c.data?.action === 'Get Saved Jobs');
   assert('Vinyl site posts to shazamme.io', post?.url === VINYL_ACTIONS);
   assert('Vinyl payload gets no dudaSiteID added', post && !('dudaSiteID' in post.data));
-  assert('Vinyl site never asks v2', !calls.some((c) => c.url.startsWith(V2_ORIGIN)));
+  assert('Vinyl site never asks v2', !calls.some((c) => new URL(c.url).origin === V2_ORIGIN));
 
   const client = await window.shazamme.client();
   await client.submit({ action: 'x' });

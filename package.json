@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node build/build.mjs",
-    "test": "node test/screening-question.rerender.test.mjs && node test/screening-question.page-tokens.test.mjs && node test/oauth-new-user.test.mjs && node test/v2-site-fallback.test.mjs"
+    "test": "node test/screening-question.rerender.test.mjs && node test/screening-question.page-tokens.test.mjs && node test/oauth-new-user.test.mjs && SDK_VERSION=1.1.9 node test/v2-site-fallback.test.mjs && node test/v2-baked-site.test.mjs"
   },
   "devDependencies": {
     "clean-css": "^5.3.3",

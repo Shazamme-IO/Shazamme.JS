@@ -149,11 +149,14 @@ const load = (routes, { storage = {}, baked } = {}) => {
   assert('v2 empty answer falls back to staging', s.siteID === 'staging-site');
 }
 
-// --- Baked config still wins with no network ---
+// --- Baked config still wins: asks only v2, never Vinyl or staging ---
 {
-  const { window, calls } = load({}, { baked: { siteID: V2_ID, apiUrl: 'https://api.shazamme.com' } });
+  const { window, calls } = load(
+    { [V2]: { ok: found({ siteID: V2_ID, isLive: true }) } },
+    { baked: { siteID: V2_ID, apiUrl: 'https://api.shazamme.com' } },
+  );
   const s = await window.shazamme.site();
-  assert('baked __shazammeSite still resolves with no request', s.siteID === V2_ID && calls.length === 0);
+  assert('baked __shazammeSite resolves from v2 only', s.siteID === V2_ID && calls.length === 1 && calls[0] === V2);
 }
 
 console.log(results.join('\n'));

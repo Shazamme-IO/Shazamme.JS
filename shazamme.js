@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.8';
+    const version = '1.1.9';
 
     // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
     // per page, regardless of which versioned filename a widget pins or how many
@@ -39,6 +39,10 @@
     const V2_ORIGIN = 'https://api.shazamme.com';
     const V2_TIMEOUT = 2500;
     const V2_SITE_CACHE_TTL = 3600000; // 1h
+
+    // A site resolved to any origin other than the Vinyl stack (shazamme.io or
+    // its staging) is a v2 site. Vinyl sites never match.
+    const isV2Site = (s) => !!s?.ApiUrl && !/^https:\/\/(staging\.)?shazamme\.io$/.test(s.ApiUrl);
 
     let _s = {}
     let _ps = {}
@@ -773,15 +777,79 @@
                         if (!sender._site) { resolve(fromOrigin('https://shazamme.io', sender._sid)); }
                     }, 8000);
 
-                    // 1) Baked config on the page — zero network, instant.
+                    const v2CacheKey = `shazamme:site:v2only:${this._sid}`;
+
+                    // 1) Baked config on the page (v2 sites only). The baked line
+                    // carries only siteID + apiUrl, so fetch the full v2 row once
+                    // (dudaSiteID, isLive, seekHirerID ... feed Register Candidate,
+                    // client() and seek()) and cache it for an hour. Any miss,
+                    // error, timeout or a row for another site keeps the baked
+                    // origin + siteID as before, plus the Duda id.
                     const baked = window.__shazammeSite;
                     if (baked && baked.siteID && baked.apiUrl) {
-                        resolve(fromOrigin(baked.apiUrl, baked.siteID));
+                        const bakedOrigin = String(baked.apiUrl).replace(/\/+$/, '');
+                        try {
+                            const hit = JSON.parse(localStorage.getItem(v2CacheKey) || 'null');
+                            if (hit?.site?.siteID === baked.siteID && hit.site.ApiUrl === bakedOrigin && (Date.now() - hit.t) < V2_SITE_CACHE_TTL) {
+                                sender._site = hit.site;
+                                resolve(sender._site);
+                                return;
+                            }
+                        } catch (e) {}
+
+                        // Kept as the live site while the row loads: synchronous
+                        // readers (_dudaFetch) stay on the baked origin, as before.
+                        const base = { ...fromOrigin(baked.apiUrl, baked.siteID), dudaSiteID: this._sid };
+                        sender._site = base;
+                        let settled = false;
+                        const useBase = () => {
+                            if (settled) return;
+                            settled = true;
+                            sender._site = base;
+                            resolve(base);
+                        };
+                        // The 8s guard above never fires here (_site is already
+                        // set), so give this branch its own no-hang fallback.
+                        setTimeout(useBase, V2_TIMEOUT + 500);
+
+                        $.ajax({
+                            url: base.RegionalUrl,
+                            type: 'POST',
+                            timeout: V2_TIMEOUT,
+                            data: JSON.stringify({
+                                action: 'Get Site ID',
+                                dudaSiteID: this._sid,
+                            })
+                        }).then( res => {
+                            const item = res?.status && res.response?.items?.[0];
+
+                            if (settled) return;
+                            if (item?.siteID !== baked.siteID) {
+                                useBase();
+                                return;
+                            }
+
+                            settled = true;
+                            // The baked fields stay as defaults for anything the
+                            // row omits; the origin always comes from the page.
+                            sender._site = {
+                                ...base,
+                                ...item,
+                                dudaSiteID: item.dudaSiteID || base.dudaSiteID,
+                                ApiUrl: base.ApiUrl,
+                                ActionUrl: base.ActionUrl,
+                                RegionalUrl: base.RegionalUrl,
+                                documentUri: base.documentUri,
+                            };
+
+                            try { localStorage.setItem(v2CacheKey, JSON.stringify({ site: sender._site, t: Date.now() })); } catch (e) {}
+
+                            resolve(sender._site);
+                        }, useBase );
                         return;
                     }
 
                     // 2) Per-site cache from an earlier resolve — instant.
-                    const v2CacheKey = `shazamme:site:v2only:${this._sid}`;
                     try {
                         const v2Cached = JSON.parse(localStorage.getItem(v2CacheKey) || 'null');
                         if (v2Cached?.site?.siteID && (Date.now() - v2Cached.t) < V2_SITE_CACHE_TTL) {
@@ -920,7 +988,9 @@
                 $.ajax({
                     url: (regional && (s?.RegionalUrl || RegionalUrl)) || s?.ActionUrl || ActionUrl,
                     type: 'POST',
-                    data: JSON.stringify(d),
+                    // v2 resolves the tenant from dudaSiteID; some widget calls
+                    // (Save Job, Get Saved Jobs) send none. Vinyl payloads are untouched.
+                    data: JSON.stringify(isV2Site(s) && d && !d.dudaSiteID ? { ...d, dudaSiteID: this._sid } : d),
                 })
             );
 
@@ -1518,9 +1588,11 @@
 
         this.client = () =>
             sender.site().then( s => {
-                const uri = s?.isLive
-                    ? 'https://shazamme.io/Job-Listing/src/php/client/actions'
-                    : 'https://staging.shazamme.io/Job-Listing/src/php/client/actions';
+                const uri = isV2Site(s)
+                    ? `${s.ApiUrl}/Job-Listing/src/php/client/actions`
+                    : s?.isLive
+                        ? 'https://shazamme.io/Job-Listing/src/php/client/actions'
+                        : 'https://staging.shazamme.io/Job-Listing/src/php/client/actions';
 
                 return Promise.resolve({
                     submit: (d) =>

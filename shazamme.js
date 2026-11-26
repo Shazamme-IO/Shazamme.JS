@@ -1,5 +1,5 @@
 (() => {
-    const version = '1.1.7';
+    const version = '1.1.8';
 
     // Single-instance guard (Shazamme.JS#4): only ONE Shazamme SDK initialises
     // per page, regardless of which versioned filename a widget pins or how many
@@ -33,6 +33,12 @@
         'Get Candidate File Types',
     ]);
     const SUBMIT_CACHE_TTL = 900000; // 15 min
+
+    // A site created in the Shazamme Backend (v2) is unknown to Vinyl. When Vinyl
+    // says so, site() asks v2 before the staging fallback.
+    const V2_ORIGIN = 'https://api.shazamme.com';
+    const V2_TIMEOUT = 2500;
+    const V2_SITE_CACHE_TTL = 3600000; // 1h
 
     let _s = {}
     let _ps = {}
@@ -775,6 +781,16 @@
                     }
 
                     // 2) Per-site cache from an earlier resolve — instant.
+                    const v2CacheKey = `shazamme:site:v2only:${this._sid}`;
+                    try {
+                        const v2Cached = JSON.parse(localStorage.getItem(v2CacheKey) || 'null');
+                        if (v2Cached?.site?.siteID && (Date.now() - v2Cached.t) < V2_SITE_CACHE_TTL) {
+                            sender._site = v2Cached.site;
+                            resolve(sender._site);
+                            return;
+                        }
+                    } catch (e) {}
+
                     try {
                         const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
                         if (cached && cached.siteID) {
@@ -784,8 +800,60 @@
                         }
                     } catch (e) {}
 
-                    // Last-resort: the original prod-first probe (unchanged), kept so
-                    // no site can regress if the fast paths don't apply.
+                    const stagingProbe = () => {
+                        $.ajax({
+                            url: 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions',
+                            type: 'POST',
+                            data: JSON.stringify({
+                                action: 'Get Site ID',
+                                dudaSiteID: this._sid,
+                            })
+                        }).then( res => {
+                            sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                            sender._site.ApiUrl = 'https://staging.shazamme.io';
+                            sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
+                            sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
+                            sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
+
+                            resolve(sender._site);
+                        });
+                    };
+
+                    // Vinyl did not know the site: a v2-only site is found here. Any
+                    // miss, error or timeout falls through to staging exactly as before.
+                    const v2Probe = () => {
+                        $.ajax({
+                            url: `${V2_ORIGIN}/Job-Listing/src/php/regional/actions`,
+                            type: 'POST',
+                            timeout: V2_TIMEOUT,
+                            data: JSON.stringify({
+                                action: 'Get Site ID',
+                                dudaSiteID: this._sid,
+                            })
+                        }).then( res => {
+                            const item = res?.status && res.response?.items?.[0];
+
+                            if (!item?.siteID) {
+                                stagingProbe();
+                                return;
+                            }
+
+                            sender._site = {
+                                ...item,
+                                ApiUrl: V2_ORIGIN,
+                                ActionUrl: `${V2_ORIGIN}/Job-Listing/src/php/actions`,
+                                RegionalUrl: `${V2_ORIGIN}/Job-Listing/src/php/regional/actions`,
+                                documentUri: `${V2_ORIGIN}/candidate-document/`,
+                            };
+
+                            try { localStorage.setItem(v2CacheKey, JSON.stringify({ site: sender._site, t: Date.now() })); } catch (e) {}
+
+                            resolve(sender._site);
+                        }, () => stagingProbe() );
+                    };
+
+                    // Last-resort: the original prod-first probe, kept so no site can
+                    // regress if the fast paths don't apply.
                     const legacyProbe = () => {
                         $.ajax({
                             url: RegionalUrl,
@@ -795,7 +863,8 @@
                                 dudaSiteID: this._sid,
                             })
                         }).then( res => {
-                            let s = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
+                            const known = res.status && res.response.items.length > 0;
+                            let s = (known && res.response.items[0]) || {};
 
                             if (s?.isLive) {
                                 sender._site = s;
@@ -805,22 +874,8 @@
                                 return;
                             }
 
-                            $.ajax({
-                                url: 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions',
-                                type: 'POST',
-                                data: JSON.stringify({
-                                    action: 'Get Site ID',
-                                    dudaSiteID: this._sid,
-                                })
-                            }).then( res => {
-                                sender._site = (res.status && res.response.items.length > 0 && res.response.items[0]) || {};
-                                sender._site.ApiUrl = 'https://staging.shazamme.io';
-                                sender._site.ActionUrl = 'https://staging.shazamme.io/Job-Listing/src/php/actions';
-                                sender._site.RegionalUrl = 'https://staging.shazamme.io/Job-Listing/src/php/regional/actions';
-                                sender._site.documentUri = 'https://staging.shazamme.io/candidate-document/';
-
-                                resolve(sender._site);
-                            });
+                            // Known to Vinyl but not live: staging, as before. Unknown: try v2.
+                            if (known) stagingProbe(); else v2Probe();
                         });
                     };
 
